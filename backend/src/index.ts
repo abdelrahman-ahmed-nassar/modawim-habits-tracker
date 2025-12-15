@@ -3,7 +3,6 @@ import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-const path = require("path");
 
 import habitRoutes from "./routes/habitRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
@@ -126,17 +125,17 @@ app.use("/api/options", optionsRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/counters", counterRoutes);
 
+// Root route for API-only deployments
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    message: "Modawim Habits Tracker API",
+  });
+});
+
 // Health check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
-});
-
-// Serve static files from React build
-app.use(express.static(path.join(__dirname, "../../../build")));
-
-// Serve React app for all other routes (should be last)
-app.get("/*", function (req, res) {
-  res.sendFile(path.join(__dirname, "../../../build", "index.html"));
 });
 
 // Error handling middleware
