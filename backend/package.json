@@ -4,19 +4,6 @@
   "description": "Backend for Habits Tracker application",
   "main": "dist/backend/src/index.js",
   "bin": "dist/backend/src/index.js",
-  "pkg": {
-    "targets": [
-      "node18-win-x64",
-      "node18-linux-x64",
-      "node18-macos-x64"
-    ],
-    "outputPath": "executable",
-    "assets": [
-      "dist/backend/**/*",
-      "dist/shared/**/*",
-      "build/**/*"
-    ]
-  },
   "scripts": {
     "start": "node dist/backend/src/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",

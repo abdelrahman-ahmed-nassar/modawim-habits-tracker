@@ -13,16 +13,10 @@ const fileLocks = new Map<string, Promise<void>>();
 
 // Base directory for data storage
 // Dynamically determine the path based on the execution environment
-const isPkgExecutable = (process as any).pkg !== undefined;
 const isCompiledCode = __dirname.includes("dist");
 
 let dataDir: string;
-if (isPkgExecutable) {
-  // For pkg executable: next to .exe file
-  // process.execPath gives the full path to the .exe
-  dataDir = path.join(path.dirname(process.execPath), "data");
-  console.log(`Running as PKG executable. execPath: ${process.execPath}`);
-} else if (isCompiledCode) {
+if (isCompiledCode) {
   // For compiled JS running from dist: dist/backend/src/services -> backend/data
   dataDir = path.join(__dirname, "../../../../data");
   console.log(`Running as compiled code from dist. __dirname: ${__dirname}`);
@@ -35,9 +29,7 @@ if (isPkgExecutable) {
 const backupDir = path.join(dataDir, "backups");
 
 console.log(`Data directory: ${dataDir}`);
-console.log(
-  `isPkgExecutable: ${isPkgExecutable}, isCompiledCode: ${isCompiledCode}`
-);
+console.log(`isCompiledCode: ${isCompiledCode}`);
 
 /**
  * Initialize the storage directories
