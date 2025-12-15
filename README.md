@@ -13,6 +13,7 @@ A local desktop application for tracking personal habits and analyzing your prog
 - 🌙 Dark mode support
 - 🔒 Complete privacy - all data stored locally
 - 🎨 Beautiful Arabic-first UI with Cairo font
+- 💾 Automatic backups
 
 ## 🚀 Quick Start for Users
 
@@ -68,7 +69,7 @@ cd backend
 pnpm run dev
 ```
 
-Server runs on `http://localhost:5002` by default.
+Server runs on http://localhost:5000
 
 #### Frontend
 
@@ -138,65 +139,62 @@ modawim-habits-tracker/
 └── deploy-release.bat # GitHub Release deployment
 ```
 
-## 🔌 API & Authentication (overview)
+## 🔌 API Endpoints
 
-The app now uses **JWT auth** and per-user scoping.
+### Habits
 
-- `POST /api/auth/register` – register with `{ email, password }` → `{ user, token }`
-- `POST /api/auth/login` – login with `{ email, password }` → `{ user, token }`
-- `GET /api/auth/me` – get current user
+- `GET /api/habits` - Get all habits
+- `POST /api/habits` - Create new habit
+- `PUT /api/habits/:id` - Update habit
+- `DELETE /api/habits/:id` - Delete habit
+- `POST /api/habits/:id/archive` - Archive a habit
+- `POST /api/habits/:id/restore` - Restore a habit
 
-All other API endpoints (habits, notes, analytics, completions, records, options, settings, etc.) require:
+### Completions
 
-```http
-Authorization: Bearer <JWT_TOKEN>
-```
+- `GET /api/habits/:id/records` - Get completion records
+- `POST /api/completions` - Mark habit complete
+- `DELETE /api/completions/:id` - Remove completion
 
-and operate **only on data belonging to that user**.
+### Notes & Journal
 
-See `backend/API-ROUTES.md` for the full, detailed route list.
+- `GET /api/notes` - Get all notes
+- `POST /api/notes` - Create note
+- `PUT /api/notes/:id` - Update note
+- `DELETE /api/notes/:id` - Delete note
+
+### Analytics
+
+- `GET /api/analytics` - Get habit analytics
+- `GET /api/analytics/notes` - Get journal analytics
+
+### Settings & Backup
+
+- `GET /api/settings` - Get app settings
+- `PUT /api/settings` - Update settings
+- `POST /api/backup` - Create data backup
+
+See `backend/API-ROUTES.md` for complete documentation.
 
 ## 💾 Data Storage
 
-All data is stored locally in JSON files under `backend/data/`.
+All application data is now stored in **MongoDB** instead of local JSON files.
 
-Primary collections:
+### MongoDB Setup
 
-- `users.json` – users with embedded:
-  - `settings`
-  - `moods`
-  - `productivityLevels`
-  - `notesTemplates`
-  - `counters`
-- `habits.json` – habit definitions, each with `userId`
-- `notes.json` – journal entries / daily notes, each with `userId`
+- Create a MongoDB database (e.g. on MongoDB Atlas or a local Mongo instance).
+- Add a connection string to `backend/.env`:
 
-Legacy / transitional files (kept for backwards compatibility, being migrated into `users.json`):
+```bash
+MONGO_URI="your-mongodb-connection-string"
+JWT_SECRET="your-strong-jwt-secret"
+```
 
-- `settings.json`
-- `moods.json`
-- `productivity_levels.json`
-- `notes_templates.json`
-- `counters.json`
-- `tags.json`
+- The backend uses Mongoose models to store:
+  - Users and settings
+  - Habits and their completion history
+  - Daily notes / journal entries
 
-New code should generally prefer reading/writing via the `users`, `habits`, and `notes` collections.
-
-## ✅ Manual Testing Checklist
-
-To quickly verify the per-user auth & data model:
-
-1. **Register & login**
-   - Call `POST /api/auth/register` from the frontend login/register form.
-   - Confirm you receive a token and can access `/` and the analytics pages.
-2. **Per-user data**
-   - Create some habits and daily notes while logged in as User A.
-   - Log out, register/login as User B, and verify you **don’t** see User A’s data.
-3. **Logout protection**
-   - Click the logout button in the header.
-   - Try navigating directly to `/` or `/daily` – you should be redirected to `/login`.
-4. **Analytics visibility**
-   - With multiple users, ensure analytics endpoints (`/api/analytics/*`, `/api/notes/analytics/*`) only reflect the current user’s habits and notes.
 
 ## 🌐 Landing Page
 
