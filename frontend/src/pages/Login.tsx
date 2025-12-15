@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthService } from "../services/auth";
 import { toast } from "react-toastify";
@@ -9,6 +10,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -50,11 +52,25 @@ const Login = () => {
               كلمة المرور
             </label>
             <Input
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              leftIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="flex items-center justify-center focus:outline-none"
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" aria-hidden />
+                  ) : (
+                    <Eye className="w-5 h-5" aria-hidden />
+                  )}
+                </button>
+              }
             />
           </div>
           <Button type="submit" className="w-full mt-2" disabled={isSubmitting}>

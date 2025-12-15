@@ -1,17 +1,14 @@
 import { v4 as uuidv4 } from "uuid";
-import { readData, writeData, ensureFileExists } from "./fileStorageService";
 import {
   Habit,
   CompletionRecord,
   DailyNote,
   HabitAnalytics,
-  NoteTemplate,
 } from "@shared/types";
 import type { User } from "@shared/types";
-// File names (collections)
-const USERS_FILE = "users.json";
-const HABITS_FILE = "habits.json";
-const NOTES_FILE = "notes.json";
+import { HabitModel } from "../models/habitModel";
+import { DailyNoteModel } from "../models/dailyNoteModel";
+import { UserModel } from "../models/userModel";
 
 // Date helpers for YYYY-MM-DD <-> YYYYMMDD integer conversion (UTC-based)
 const dateStrToInt = (dateStr: string): number =>
@@ -43,86 +40,80 @@ const completionFromDay = (
   };
 };
 
+const toPlain = <T>(doc: any): T => {
+  if (!doc) return doc;
+  return doc.toObject ? (doc.toObject() as T) : (doc as T);
+};
+
 /**
  * USERS COLLECTION HELPERS
  */
 export const getUsers = async (): Promise<User[]> => {
-  return await readData<User[]>(USERS_FILE);
+  const users = await UserModel.find().lean<User[]>();
+  return users;
 };
 
 export const getUserById = async (id: string): Promise<User | null> => {
-  const users = await getUsers();
-  const user = users.find((u) => u.id === id);
+  const user = await UserModel.findOne({ id }).lean<User | null>();
   return user || null;
 };
 
 export const getUserByEmail = async (email: string): Promise<User | null> => {
-  const users = await getUsers();
   const normalized = email.toLowerCase();
-  const user = users.find((u) => u.email.toLowerCase() === normalized);
+  const user = await UserModel.findOne({
+    email: normalized,
+  }).lean<User | null>();
   return user || null;
 };
 
 export const saveUser = async (user: User): Promise<User> => {
-  const users = await getUsers();
-  const index = users.findIndex((u) => u.id === user.id);
+  const now = new Date().toISOString();
+  const payload: User = {
+    ...user,
+    email: user.email.toLowerCase(),
+    createdAt: user.createdAt || now,
+    updatedAt: now,
+  };
 
-  if (index === -1) {
-    users.push(user);
-  } else {
-    users[index] = user;
-  }
+  const saved = await UserModel.findOneAndUpdate({ id: payload.id }, payload, {
+    upsert: true,
+    new: true,
+    setDefaultsOnInsert: true,
+  }).lean<User>();
 
-  await writeData(USERS_FILE, users);
-  return user;
+  return saved;
 };
 
 export const deleteUserById = async (userId: string): Promise<boolean> => {
-  const users = await getUsers();
-  const initialLength = users.length;
-  const filtered = users.filter((u) => u.id !== userId);
-  if (filtered.length === initialLength) {
-    return false;
-  }
-  await writeData(USERS_FILE, filtered);
-  return true;
+  const result = await UserModel.deleteOne({ id: userId });
+  return result.deletedCount === 1;
 };
 
 /**
- * Initialize the data files if they don't exist
+ * Initialize data (noop for MongoDB, kept for compatibility)
  */
 export const initializeData = async (): Promise<void> => {
-  // Core collections
-  await ensureFileExists(USERS_FILE, []);
-  await ensureFileExists(HABITS_FILE, []);
-  await ensureFileExists(NOTES_FILE, []);
-
-  console.log("Data files initialized");
+  // MongoDB collections are created automatically on first insert.
 };
 
 /**
  * Get all habits
- * @returns Promise with all habits
  */
 export const getHabits = async (): Promise<Habit[]> => {
-  return await readData<Habit[]>(HABITS_FILE);
+  const habits = await HabitModel.find().lean<Habit[]>();
+  return habits;
 };
 
 /**
  * Get a habit by ID
- * @param id The habit ID to find
- * @returns The habit if found, null otherwise
  */
 export const getHabitById = async (id: string): Promise<Habit | null> => {
-  const habits = await getHabits();
-  const habit = habits.find((h) => h.id === id);
+  const habit = await HabitModel.findOne({ id }).lean<Habit | null>();
   return habit || null;
 };
 
 /**
  * Create a new habit
- * @param habit The habit data to create (without ID)
- * @returns The created habit with ID
  */
 export const createHabit = async (
   habitData: Omit<
@@ -135,8 +126,6 @@ export const createHabit = async (
     | "isActive"
   >
 ): Promise<Habit> => {
-  const habits = await getHabits();
-
   const newHabit: Habit = {
     id: uuidv4(),
     ...habitData,
@@ -148,68 +137,42 @@ export const createHabit = async (
     completedDays: [],
   };
 
-  habits.push(newHabit);
-  await writeData(HABITS_FILE, habits);
-
-  return newHabit;
+  const created = await HabitModel.create(newHabit);
+  return toPlain<Habit>(created);
 };
 
 /**
  * Update a habit
- * @param id The habit ID to update
- * @param habitData The habit data to update
- * @returns The updated habit if successful, null if not found
  */
 export const updateHabit = async (
   id: string,
   habitData: Partial<Habit>
 ): Promise<Habit | null> => {
-  const habits = await getHabits();
-  const index = habits.findIndex((h) => h.id === id);
+  const { id: _omit, createdAt, ...updateData } = habitData;
 
-  if (index === -1) {
-    return null;
-  }
+  const updated = await HabitModel.findOneAndUpdate({ id }, updateData, {
+    new: true,
+  }).lean<Habit | null>();
 
-  // Prevent overriding certain fields
-  const { id: _, createdAt, ...updateData } = habitData;
-
-  const updatedHabit = {
-    ...habits[index],
-    ...updateData,
-  };
-
-  habits[index] = updatedHabit;
-  await writeData(HABITS_FILE, habits);
-
-  return updatedHabit;
+  return updated || null;
 };
 
 /**
  * Delete a habit
- * @param id The habit ID to delete
- * @returns Whether the deletion was successful
  */
 export const deleteHabit = async (id: string): Promise<boolean> => {
-  const habits = await getHabits();
-  const initialLength = habits.length;
-
-  const filteredHabits = habits.filter((h) => h.id !== id);
-
-  if (filteredHabits.length === initialLength) {
-    return false;
-  }
-
-  await writeData(HABITS_FILE, filteredHabits);
-  return true;
+  const result = await HabitModel.deleteOne({ id });
+  return result.deletedCount === 1;
 };
 
 /**
  * Replace all habits with a new set
- * @param habits New set of habits
  */
 export const replaceAllHabits = async (habits: Habit[]): Promise<void> => {
-  await writeData(HABITS_FILE, habits);
+  await HabitModel.deleteMany({});
+  if (habits.length > 0) {
+    await HabitModel.insertMany(habits);
+  }
 };
 
 /**
@@ -246,10 +209,11 @@ export const getCompletionsByDate = async (
   date: string
 ): Promise<CompletionRecord[]> => {
   const targetInt = dateStrToInt(date);
-  const habits = await getHabits();
-  return habits
-    .filter((h) => (h.completedDays || []).includes(targetInt))
-    .map((h) => completionFromDay(h.id, targetInt, true));
+  const habits = await HabitModel.find({
+    completedDays: targetInt,
+  }).lean<Habit[]>();
+
+  return habits.map((h) => completionFromDay(h.id, targetInt, true));
 };
 
 /**
@@ -286,7 +250,7 @@ export const createCompletion = async (
 export const createCompletionsBatch = async (
   completionsData: Array<Omit<CompletionRecord, "id" | "completedAt">>
 ): Promise<CompletionRecord[]> => {
-  const habits = await getHabits();
+  const habits = await HabitModel.find().lean<Habit[]>();
   const habitMap = new Map<string, Habit>();
   habits.forEach((h) => habitMap.set(h.id, h));
 
@@ -313,9 +277,22 @@ export const createCompletionsBatch = async (
   }
 
   // Persist updates per habit
-  for (const [habitId, days] of changedHabits.entries()) {
-    await updateHabit(habitId, { completedDays: Array.from(days) });
-    await updateHabitStreaks(habitId);
+  const bulkOps = Array.from(changedHabits.entries()).map(
+    ([habitId, days]) => ({
+      updateOne: {
+        filter: { id: habitId },
+        update: { $set: { completedDays: Array.from(days) } },
+      },
+    })
+  );
+
+  if (bulkOps.length > 0) {
+    await HabitModel.bulkWrite(bulkOps);
+    // Update streaks sequentially to reuse existing logic
+    for (const habitId of changedHabits.keys()) {
+      // eslint-disable-next-line no-await-in-loop
+      await updateHabitStreaks(habitId);
+    }
   }
 
   return created;
@@ -409,9 +386,6 @@ export const updateHabitStreaks = async (habitId: string): Promise<void> => {
 
 /**
  * Convert completion records to a daily status map
- * @param habit The habit
- * @param completions Completion records for the habit
- * @returns Map of dates to completion status
  */
 const getDailyCompletionStatus = (
   habit: Habit,
@@ -428,75 +402,57 @@ const getDailyCompletionStatus = (
 
 /**
  * Calculate current streak based on daily completion status
- * @param dailyCompletions Map of dates to completion status
- * @param repetition Habit repetition type
- * @param specificDays Specific days for weekly/monthly habits
- * @returns Current streak count
  */
 const calculateCurrentStreak = (
   dailyCompletions: Map<string, boolean>,
   repetition: "daily" | "weekly" | "monthly",
   specificDays?: number[]
 ): number => {
-  // Convert map to array of [date, completed] pairs and sort by date (most recent first)
   const sortedCompletions = Array.from(dailyCompletions.entries()).sort(
     (a, b) => b[0].localeCompare(a[0])
   );
 
   if (sortedCompletions.length === 0) return 0;
 
-  // Get today's date for comparison
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split("T")[0];
 
-  // Get the most recent completion date
   const mostRecentDate = new Date(sortedCompletions[0][0]);
   mostRecentDate.setHours(0, 0, 0, 0);
 
-  // Calculate days since most recent completion
   const daysSinceLastCompletion = Math.floor(
     (today.getTime() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  // Check if the streak is still "current" based on repetition pattern
-  // A streak is only current if the last completion is recent enough
   if (repetition === "daily") {
-    // For daily habits, we need completion from yesterday or today to have a current streak
     if (daysSinceLastCompletion > 1) return 0;
   } else if (repetition === "weekly") {
-    // For weekly habits, allow up to 7 days gap
     if (daysSinceLastCompletion > 7) return 0;
   } else if (repetition === "monthly") {
-    // For monthly habits, allow up to 31 days gap
     if (daysSinceLastCompletion > 31) return 0;
   }
 
   let streak = 0;
 
-  // Go backwards from the most recent date
   for (let i = 0; i < sortedCompletions.length; i++) {
     const [dateStr, completed] = sortedCompletions[i];
     const date = new Date(dateStr);
 
-    // If there's a gap in consecutive dates, or the habit wasn't completed, break
     if (i > 0) {
       const prevDate = new Date(sortedCompletions[i - 1][0]);
       const dayDiff = Math.floor(
         (prevDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
       );
 
-      // For non-daily habits, need to handle differently
       if (repetition === "weekly" && dayDiff > 7) break;
       if (repetition === "monthly" && dayDiff > 31) break;
       if (repetition === "daily" && dayDiff > 1) break;
     }
 
-    // If completed, increment streak
     if (completed) {
       streak++;
     } else {
-      break; // Break on first non-completion
+      break;
     }
   }
 
@@ -505,17 +461,12 @@ const calculateCurrentStreak = (
 
 /**
  * Calculate all streaks in the history
- * @param dailyCompletions Map of dates to completion status
- * @param repetition Habit repetition type
- * @param specificDays Specific days for weekly/monthly habits
- * @returns Array of streak lengths
  */
 const calculateAllStreaks = (
   dailyCompletions: Map<string, boolean>,
   repetition: "daily" | "weekly" | "monthly",
   specificDays?: number[]
 ): number[] => {
-  // Convert map to array of [date, completed] pairs and sort by date (oldest first)
   const sortedCompletions = Array.from(dailyCompletions.entries()).sort(
     (a, b) => a[0].localeCompare(b[0])
   );
@@ -535,7 +486,6 @@ const calculateAllStreaks = (
       }
     }
 
-    // Check if there's a gap to the next date
     if (i < sortedCompletions.length - 1) {
       const currentDate = new Date(dateStr);
       const nextDate = new Date(sortedCompletions[i + 1][0]);
@@ -543,7 +493,6 @@ const calculateAllStreaks = (
         (nextDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
       );
 
-      // For non-daily habits, need to handle differently
       if (
         (repetition === "daily" && dayDiff > 1) ||
         (repetition === "weekly" && dayDiff > 7) ||
@@ -557,7 +506,6 @@ const calculateAllStreaks = (
     }
   }
 
-  // Add the last streak if there is one
   if (currentStreak > 0) {
     streaks.push(currentStreak);
   }
@@ -567,129 +515,88 @@ const calculateAllStreaks = (
 
 /**
  * Get all daily notes
- * @returns Promise with all daily notes
  */
 export const getNotes = async (): Promise<DailyNote[]> => {
-  return await readData<DailyNote[]>(NOTES_FILE);
+  const notes = await DailyNoteModel.find().lean<DailyNote[]>();
+  return notes;
 };
 
 /**
  * Get a note by date
- * @param date The date to find in YYYY-MM-DD format
- * @returns The note if found, null otherwise
  */
 export const getNoteByDate = async (
   date: string
 ): Promise<DailyNote | null> => {
-  const notes = await getNotes();
-  const note = notes.find((n) => n.date === date);
+  const note = await DailyNoteModel.findOne({ date }).lean<DailyNote | null>();
   return note || null;
 };
 
 /**
  * Create or update a daily note
- * @param noteData The note data
- * @returns The created or updated note
  */
 export const saveNote = async (
   noteData: Omit<DailyNote, "id" | "createdAt" | "updatedAt">
 ): Promise<DailyNote> => {
-  const notes = await getNotes();
   const now = new Date().toISOString();
 
-  const existingIndex = notes.findIndex((n) => n.date === noteData.date);
-  if (existingIndex >= 0) {
-    // Update existing note
-    notes[existingIndex] = {
-      ...notes[existingIndex],
-      content: noteData.content,
-      mood: noteData.mood,
-      productivityLevel: noteData.productivityLevel,
-      updatedAt: now,
-    };
-
-    await writeData(NOTES_FILE, notes);
-    return notes[existingIndex];
-  } else {
-    // Create new note
-    const newNote: DailyNote = {
-      id: uuidv4(),
-      ...noteData,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    notes.push(newNote);
-    await writeData(NOTES_FILE, notes);
-    return newNote;
+  const existing = await DailyNoteModel.findOne({ date: noteData.date });
+  if (existing) {
+    existing.content = noteData.content;
+    existing.mood = noteData.mood;
+    existing.productivityLevel = noteData.productivityLevel;
+    existing.updatedAt = now;
+    await existing.save();
+    return toPlain<DailyNote>(existing);
   }
+
+  const newNote: DailyNote = {
+    id: uuidv4(),
+    ...noteData,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const created = await DailyNoteModel.create(newNote);
+  return toPlain<DailyNote>(created);
 };
 
 /**
  * Update a note by ID
- * @param id The note ID to update
- * @param noteData The note data to update
- * @returns The updated note if successful, null if not found
  */
 export const updateNote = async (
   id: string,
   noteData: Partial<Omit<DailyNote, "id" | "createdAt" | "updatedAt">>
 ): Promise<DailyNote | null> => {
-  const notes = await getNotes();
-  const index = notes.findIndex((n) => n.id === id);
-
-  if (index === -1) {
-    return null;
-  }
-
   const now = new Date().toISOString();
-  const updatedNote: DailyNote = {
-    ...notes[index],
-    ...noteData,
-    updatedAt: now,
-  };
+  const updatedNote = await DailyNoteModel.findOneAndUpdate(
+    { id },
+    { ...noteData, updatedAt: now },
+    { new: true }
+  ).lean<DailyNote | null>();
 
-  notes[index] = updatedNote;
-  await writeData(NOTES_FILE, notes);
-
-  return updatedNote;
+  return updatedNote || null;
 };
 
 /**
  * Delete a note
- * @param id The note ID to delete
- * @returns Whether the deletion was successful
  */
 export const deleteNote = async (id: string): Promise<boolean> => {
-  const notes = await getNotes();
-  const initialLength = notes.length;
-
-  const filteredNotes = notes.filter((n) => n.id !== id);
-
-  if (filteredNotes.length === initialLength) {
-    return false;
-  }
-
-  await writeData(NOTES_FILE, filteredNotes);
-  return true;
+  const result = await DailyNoteModel.deleteOne({ id });
+  return result.deletedCount === 1;
 };
 
 /**
  * Delete all habits for a given user
  */
 export const deleteHabitsByUserId = async (userId: string): Promise<void> => {
-  const habits = await getHabits();
-  const filtered = habits.filter((h) => h.userId !== userId);
-  await writeData(HABITS_FILE, filtered);
+  await HabitModel.deleteMany({ userId });
 };
 
 /**
  * Delete all notes for a given user
  */
 export const deleteNotesByUserId = async (userId: string): Promise<void> => {
-  const notes = await getNotes();
-  const filtered = notes.filter((n) => n.userId !== userId);
-  await writeData(NOTES_FILE, filtered);
+  await DailyNoteModel.deleteMany({ userId });
 };
 
 // Per-user settings helpers (embedded on User)
@@ -731,17 +638,9 @@ export const resetUserData = async (userId: string): Promise<void> => {
     throw new Error("User not found");
   }
 
-  // Remove user-owned habits
-  const habits = await getHabits();
-  const filteredHabits = habits.filter((h) => h.userId !== userId);
-  await writeData(HABITS_FILE, filteredHabits);
+  await HabitModel.deleteMany({ userId });
+  await DailyNoteModel.deleteMany({ userId });
 
-  // Remove user-owned notes
-  const notes = await getNotes();
-  const filteredNotes = notes.filter((n) => n.userId !== userId);
-  await writeData(NOTES_FILE, filteredNotes);
-
-  // Reset embedded data on the user
   const now = new Date().toISOString();
   const resetUser: User = {
     ...user,
@@ -758,8 +657,6 @@ export const resetUserData = async (userId: string): Promise<void> => {
 
 /**
  * Calculate analytics for a habit
- * @param habitId The habit ID to calculate analytics for
- * @returns Analytics for the habit
  */
 export const calculateHabitAnalytics = async (
   habitId: string
@@ -785,21 +682,14 @@ export const calculateHabitAnalytics = async (
     };
   }
 
-  // Sort completions by date
   const sortedCompletions = [...completions].sort((a, b) =>
     a.date.localeCompare(b.date)
   );
 
-  // Total completions
   const totalCompletions = completions.filter((c) => c.completed).length;
-
-  // Success rate
   const successRate = totalCompletions / completions.length;
-
-  // Longest streak (just use the habit's bestStreak)
   const longestStreak = habit.bestStreak;
 
-  // Calculate completion rates by day of week
   const dayStats = Array(7)
     .fill(0)
     .map(() => ({ total: 0, completed: 0 }));
@@ -812,13 +702,11 @@ export const calculateHabitAnalytics = async (
     }
   });
 
-  // Calculate success rates for each day
   const dayOfWeekRates = dayStats.map((stats, index) => ({
     dayOfWeek: index,
     successRate: stats.total > 0 ? stats.completed / stats.total : 0,
   }));
 
-  // Find best and worst days
   const bestDayOfWeek = dayOfWeekRates.reduce(
     (best, current) =>
       current.successRate > dayOfWeekRates[best].successRate
@@ -834,7 +722,6 @@ export const calculateHabitAnalytics = async (
     0
   );
 
-  // Prepare completion history
   const completionHistory = sortedCompletions.map((completion) => ({
     date: completion.date,
     completed: completion.completed,
@@ -859,12 +746,11 @@ export const calculateHabitAnalytics = async (
 
 /**
  * Replace all completion records with a new set
- * @param completions New set of completion records
  */
 export const replaceAllCompletions = async (
   completions: CompletionRecord[]
 ): Promise<void> => {
-  const habits = await getHabits();
+  const habits = await HabitModel.find().lean<Habit[]>();
   const habitMap = new Map<string, Habit>();
 
   habits.forEach((h) => habitMap.set(h.id, { ...h, completedDays: [] }));
@@ -879,101 +765,50 @@ export const replaceAllCompletions = async (
     habit.completedDays = Array.from(set);
   });
 
-  const updatedHabits = Array.from(habitMap.values());
-  await writeData(HABITS_FILE, updatedHabits);
+  const bulkOps = Array.from(habitMap.values()).map((habit) => ({
+    updateOne: {
+      filter: { id: habit.id },
+      update: { $set: { completedDays: habit.completedDays } },
+    },
+  }));
+
+  if (bulkOps.length > 0) {
+    await HabitModel.bulkWrite(bulkOps);
+  }
 };
 
-
-// Generic CRUD operations for any data file
-
-/**
- * Get all items from a data file
- * @param dataFile The name of the data file without extension
- * @returns Promise with all items
- */
-export const getAll = async <T>(dataFile: string): Promise<T[]> => {
-  const fileName = `${dataFile}.json`;
-  await ensureFileExists(fileName, []);
-  return await readData<T[]>(fileName);
+// Generic CRUD placeholders retained for compatibility (no-ops for Mongo)
+export const getAll = async <T>(_dataFile: string): Promise<T[]> => {
+  throw new Error("getAll is not supported with MongoDB storage");
 };
 
-/**
- * Get an item by ID from a data file
- * @param dataFile The name of the data file without extension
- * @param id The ID of the item to get
- * @returns The item if found, null otherwise
- */
 export const getById = async <T extends { id: string }>(
-  dataFile: string,
-  id: string
+  _dataFile: string,
+  _id: string
 ): Promise<T | null> => {
-  const items = await getAll<T>(dataFile);
-  const item = items.find((item) => item.id === id);
-  return item || null;
+  throw new Error("getById is not supported with MongoDB storage");
 };
 
-/**
- * Add a new item to a data file
- * @param dataFile The name of the data file without extension
- * @param item The item to add
- */
 export const add = async <T extends { id: string }>(
-  dataFile: string,
-  item: T
+  _dataFile: string,
+  _item: T
 ): Promise<T> => {
-  const fileName = `${dataFile}.json`;
-  const items = await getAll<T>(dataFile);
-  items.push(item);
-  await writeData(fileName, items);
-  return item;
+  throw new Error("add is not supported with MongoDB storage");
 };
 
-/**
- * Update an item in a data file
- * @param dataFile The name of the data file without extension
- * @param id The ID of the item to update
- * @param updatedItem The updated item data
- * @returns The updated item if found, null otherwise
- */
 export const update = async <T extends { id: string }>(
-  dataFile: string,
-  id: string,
-  updatedItem: T
+  _dataFile: string,
+  _id: string,
+  _updatedItem: T
 ): Promise<T | null> => {
-  const fileName = `${dataFile}.json`;
-  const items = await getAll<T>(dataFile);
-  const index = items.findIndex((item) => item.id === id);
-
-  if (index === -1) {
-    return null;
-  }
-
-  items[index] = updatedItem;
-  await writeData(fileName, items);
-  return updatedItem;
+  throw new Error("update is not supported with MongoDB storage");
 };
 
-/**
- * Remove an item from a data file
- * @param dataFile The name of the data file without extension
- * @param id The ID of the item to remove
- * @returns True if removed, false if not found
- */
 export const remove = async <T extends { id: string }>(
-  dataFile: string,
-  id: string
+  _dataFile: string,
+  _id: string
 ): Promise<boolean> => {
-  const fileName = `${dataFile}.json`;
-  const items = await getAll<T>(dataFile);
-  const initialLength = items.length;
-  const filteredItems = items.filter((item) => item.id !== id);
-
-  if (filteredItems.length === initialLength) {
-    return false;
-  }
-
-  await writeData(fileName, filteredItems);
-  return true;
+  throw new Error("remove is not supported with MongoDB storage");
 };
 
 // Export the dataService as an object for importing in other files
@@ -983,7 +818,6 @@ export const dataService = {
   add,
   update,
   remove,
-  // Existing methods
   getHabits,
   getHabitById,
   createHabit,
@@ -1007,9 +841,5 @@ export const dataService = {
   calculateHabitAnalytics,
   replaceAllCompletions,
   updateHabitStreaks,
+  initializeData,
 };
-
-// Initialize data on module load
-initializeData()
-  .then(() => console.log("Data service initialized"))
-  .catch((err) => console.error("Data service initialization failed:", err));

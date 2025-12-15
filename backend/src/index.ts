@@ -17,6 +17,7 @@ import counterRoutes from "./routes/counterRoutes";
 import authRoutes from "./routes/authRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import { applyPendingUpdate } from "./utils/updateApplier";
+import { connectMongo } from "./config/mongo";
 
 const app: Express = express();
 const PORT = process.env.PORT || 5002;
@@ -141,8 +142,16 @@ app.get("/*", function (req, res) {
 // Error handling middleware
 app.use(errorHandler);
 
-// Start server with automatic port fallback
-startServer(Number(PORT));
+// Connect to Mongo then start server
+connectMongo()
+  .then(() => startServer(Number(PORT)))
+  .catch((error) => {
+    console.error(
+      "Failed to start server due to MongoDB connection error:",
+      error
+    );
+    process.exit(1);
+  });
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (error) => {
