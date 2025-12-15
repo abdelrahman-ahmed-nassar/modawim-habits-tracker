@@ -11,7 +11,6 @@ import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 import Counters from "./pages/Counters";
 import MotivationalPopup from "./components/ui/MotivationalPopup";
-import { UpdateNotification } from "./components/UpdateNotification";
 import "react-toastify/dist/ReactToastify.css";
 
 function App() {
@@ -39,7 +38,6 @@ function App() {
           </Route>
         </Routes>
       </Router>
-      <UpdateNotification />
       <MotivationalPopup />
       <ToastContainer
         position="top-center"

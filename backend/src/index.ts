@@ -16,7 +16,6 @@ import backupRoutes from "./routes/backupRoutes";
 import tagRoutes from "./routes/tagRoutes";
 import templateRoutes from "./routes/templateRoutes";
 import counterRoutes from "./routes/counterRoutes";
-import updateRoutes from "./routes/updateRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import { applyPendingUpdate } from "./utils/updateApplier";
 
@@ -127,7 +126,6 @@ app.use("/api/backup", backupRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/counters", counterRoutes);
-app.use("/api/updates", updateRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

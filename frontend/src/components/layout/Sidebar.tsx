@@ -12,7 +12,6 @@ import {
   MessageCircle,
   Calculator,
 } from "lucide-react";
-import { APP_VERSION } from "../../../../shared/version";
 
 interface SidebarProps {
   isMobile: boolean;
@@ -130,12 +129,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, onClose }) => {
                 </a>
               </div>
 
-              {/* Version */}
-              <div className="text-center pt-2">
-                <p className="text-xs text-gray-500 dark:text-gray-500">
-                  الإصدار {APP_VERSION}
-                </p>
-              </div>
             </div>
           </div>
         </div>
