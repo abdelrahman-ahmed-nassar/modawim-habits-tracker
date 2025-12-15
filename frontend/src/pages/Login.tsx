@@ -32,7 +32,7 @@ const Login = () => {
     <div className="min-h-screen w-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
         <h1 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">
-          تسجيل الدخول إلى مدوِّم
+          تسجيل الدخول إلى مداوم
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -62,7 +62,9 @@ const Login = () => {
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="flex items-center justify-center focus:outline-none"
-                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                  aria-label={
+                    showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" aria-hidden />
