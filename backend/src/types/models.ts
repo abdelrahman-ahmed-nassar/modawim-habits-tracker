@@ -33,10 +33,6 @@ export interface Settings {
     enabled: boolean;
     reminderTime: string;
   };
-  analytics: {
-    cacheEnabled: boolean;
-    cacheDuration: number; // in minutes
-  };
   reminderEnabled: boolean;
   reminderTime: string;
   backupEnabled: boolean;

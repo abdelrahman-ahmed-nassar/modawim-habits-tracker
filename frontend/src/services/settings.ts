@@ -6,14 +6,7 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-interface AnalyticsCacheSettings {
-  enabled: boolean;
-  ttl: number;
-}
-
-interface Settings {
-  analyticsCache: AnalyticsCacheSettings;
-}
+type Settings = Record<string, unknown>;
 
 export class SettingsService {
   /**
@@ -50,20 +43,5 @@ export class SettingsService {
     }
 
     return result.data;
-  }
-
-  /**
-   * Clear analytics cache
-   */
-  static async clearAnalyticsCache(): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/analytics/clear-cache`, {
-      method: "POST",
-    });
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to clear analytics cache");
-    }
   }
 }

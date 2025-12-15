@@ -362,13 +362,6 @@ export class AnalyticsService {
   }
 
   /**
-   * Clear the analytics cache
-   */
-  async clearAnalyticsCache(): Promise<void> {
-    await axios.post(`${API_BASE_URL}/analytics/clear-cache`);
-  }
-
-  /**
    * Get notes analytics overview
    * @param startDate - Optional start date in YYYY-MM-DD format
    * @param endDate - Optional end date in YYYY-MM-DD format

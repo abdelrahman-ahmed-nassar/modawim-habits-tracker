@@ -18,7 +18,6 @@ import templateRoutes from "./routes/templateRoutes";
 import counterRoutes from "./routes/counterRoutes";
 import updateRoutes from "./routes/updateRoutes";
 import { errorHandler } from "./middleware/errorHandler";
-import { invalidateAnalyticsCache } from "./middleware/cacheMiddleware";
 import { applyPendingUpdate } from "./utils/updateApplier";
 
 const app: Express = express();
@@ -115,10 +114,6 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
-
-// Cache invalidation middleware - should come after express.json()
-// to have access to the request body
-app.use(invalidateAnalyticsCache);
 
 // Routes
 app.use("/api/habits", habitRoutes);

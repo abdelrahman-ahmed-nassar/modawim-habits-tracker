@@ -668,21 +668,6 @@ GET /analytics/quarter/:startDate
 
 **Note:** Returns exactly 91 objects representing each day in the quarter period, with completion rates calculated as a percentage (0-100) rounded to 2 decimal places. If no completions exist for a day, the completion rate will be 0.
 
-#### Clear Analytics Cache
-
-```http
-POST /analytics/clear-cache
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Analytics cache cleared successfully"
-}
-```
-
 ### 4. Records (`/records`)
 
 #### Get Daily Records
@@ -1111,10 +1096,6 @@ GET /settings
 {
   "success": true,
   "data": {
-    "analyticsCache": {
-      "enabled": boolean,
-      "ttl": number
-    }
   }
 }
 ```
@@ -1129,10 +1110,6 @@ PUT /settings
 
 ```json
 {
-  "analyticsCache": {
-    "enabled": boolean,
-    "ttl": number
-  }
 }
 ```
 
@@ -1142,10 +1119,7 @@ PUT /settings
 {
   "success": true,
   "data": {
-    "analyticsCache": {
-      "enabled": boolean,
-      "ttl": number
-    }
+    // settings fields here
   },
   "message": "Settings updated successfully"
 }

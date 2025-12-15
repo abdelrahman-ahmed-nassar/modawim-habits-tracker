@@ -6,10 +6,6 @@ export interface Settings {
     enabled: boolean;
     reminderTime: string;
   };
-  analytics: {
-    cacheEnabled: boolean;
-    cacheDuration: number; // in minutes
-  };
   reminderEnabled: boolean;
   reminderTime: string;
   backupEnabled: boolean;
@@ -24,10 +20,6 @@ export const defaultSettings: Settings = {
   notifications: {
     enabled: true,
     reminderTime: "09:00",
-  },
-  analytics: {
-    cacheEnabled: true,
-    cacheDuration: 5, // 5 minutes default
   },
   reminderEnabled: true,
   reminderTime: "20:00",

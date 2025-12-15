@@ -197,29 +197,6 @@ const OverallAnalytics: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               </div>
             </div>
           )}
-
-          {/* Add a button to refresh analytics cache */}
-          <div className="mt-6 text-center">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  await analyticsService.clearAnalyticsCache();
-                  toast.success("تم مسح ذاكرة التحليلات بنجاح");
-                  // Refresh data
-                  setLoading(true);
-                  const data = await analyticsService.getOverallAnalytics();
-                  setAnalytics(data);
-                  setLoading(false);
-                } catch (error) {
-                  toast.error("فشل مسح ذاكرة التحليلات");
-                  console.error("Error clearing analytics cache:", error);
-                }
-              }}
-            >
-              تحديث التحليلات
-            </Button>
-          </div>
         </div>
       </Card>
     </div>

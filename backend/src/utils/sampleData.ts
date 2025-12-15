@@ -203,10 +203,6 @@ export const generateDefaultSettings = (): Settings => {
       enabled: true,
       reminderTime: "09:00",
     },
-    analytics: {
-      cacheEnabled: true,
-      cacheDuration: 5,
-    },
     reminderEnabled: true,
     reminderTime: "20:00",
     backupEnabled: true,

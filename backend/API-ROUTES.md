@@ -39,7 +39,6 @@ Base URL: `http://localhost:5002/api`
 - `GET /api/analytics/monthly/:year/:month` - Get monthly analytics
 - `GET /api/analytics/quarter/:startDate` - Get quarterly analytics
 - `GET /api/analytics/habits` - Get analytics for all habits
-- `POST /api/analytics/clear-cache` - Clear analytics cache
 
 ## 4. Records
 

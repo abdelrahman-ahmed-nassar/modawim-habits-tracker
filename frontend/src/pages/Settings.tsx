@@ -6,7 +6,6 @@ import {
   Zap,
   FileText,
   Database,
-  RotateCcw,
   Calculator,
   Trash2,
 } from "lucide-react";
@@ -39,7 +38,6 @@ const Settings: React.FC = () => {
       : "habits"
   );
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
-  const [isClearingCache, setIsClearingCache] = useState(false);
   const [isResettingData, setIsResettingData] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const isLoading = false;
@@ -72,27 +70,6 @@ const Settings: React.FC = () => {
       );
     } finally {
       setIsCreatingBackup(false);
-    }
-  };
-
-  const handleClearCache = async () => {
-    try {
-      setIsClearingCache(true);
-      const response = await axios.post(
-        "http://localhost:5002/api/analytics/clear-cache"
-      );
-      if (response.data.success) {
-        toast.success("تم مسح ذاكرة التخزين المؤقت للتحليلات بنجاح!");
-      } else {
-        toast.error("فشل مسح ذاكرة التخزين المؤقت للتحليلات");
-      }
-    } catch (error) {
-      console.error("Error clearing analytics cache:", error);
-      toast.error(
-        "فشل مسح ذاكرة التخزين المؤقت للتحليلات. تحقق من وحدة التحكم للحصول على التفاصيل."
-      );
-    } finally {
-      setIsClearingCache(false);
     }
   };
 
@@ -235,17 +212,6 @@ const Settings: React.FC = () => {
               {isCreatingBackup
                 ? "جارٍ إنشاء النسخة الاحتياطية..."
                 : "إنشاء نسخة احتياطية"}
-            </button>
-
-            <button
-              onClick={handleClearCache}
-              disabled={isClearingCache}
-              className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RotateCcw className="w-4 h-4 ml-2" />
-              {isClearingCache
-                ? "جارٍ مسح ذاكرة التخزين المؤقت..."
-                : "مسح ذاكرة التخزين المؤقت للتحليلات"}
             </button>
 
             <button

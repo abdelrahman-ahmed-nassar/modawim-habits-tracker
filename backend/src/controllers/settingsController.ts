@@ -3,7 +3,6 @@ import { asyncHandler } from "../middleware/errorHandler";
 import * as dataService from "../services/dataService";
 import { AppError } from "../middleware/errorHandler";
 import { Settings } from "../types/models";
-import { analyticsCache } from "../utils/cacheUtils";
 
 /**
  * Get current settings
@@ -25,9 +24,6 @@ export const getSettings = asyncHandler(async (req: Request, res: Response) => {
 export const resetAllData = asyncHandler(
   async (req: Request, res: Response) => {
     await dataService.resetAllData();
-
-    // Clear analytics cache after resetting data
-    analyticsCache.clear();
 
     res.status(200).json({
       success: true,
@@ -77,31 +73,7 @@ export const updateSettings = asyncHandler(
       );
     }
 
-    // Validate analytics settings
-    if (settingsData.analytics) {
-      if (
-        typeof settingsData.analytics.cacheEnabled !== "undefined" &&
-        typeof settingsData.analytics.cacheEnabled !== "boolean"
-      ) {
-        throw new AppError("analytics.cacheEnabled must be a boolean", 400);
-      }
-
-      if (
-        typeof settingsData.analytics.cacheDuration !== "undefined" &&
-        (typeof settingsData.analytics.cacheDuration !== "number" ||
-          settingsData.analytics.cacheDuration < 1)
-      ) {
-        throw new AppError(
-          "analytics.cacheDuration must be a positive number",
-          400
-        );
-      }
-    }
-
     const updatedSettings = await dataService.updateSettings(settingsData);
-
-    // Update analytics cache settings
-    await analyticsCache.updateSettings(updatedSettings);
 
     res.status(200).json({
       success: true,

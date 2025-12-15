@@ -845,21 +845,6 @@ GET /api/analytics/habits
 }
 ```
 
-### Clear Analytics Cache
-
-```
-POST /api/analytics/clear-cache
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Analytics cache cleared successfully"
-}
-```
-
 ## 4. Records (`/records`)
 
 ### Get Daily Records
@@ -1322,11 +1307,7 @@ curl http://localhost:5002/api/settings
     "reminderTime": "09:00",
     "backupEnabled": true,
     "backupFrequency": "daily",
-    "lastBackupDate": "2025-05-25",
-    "analytics": {
-      "cacheEnabled": false,
-      "cacheDuration": 0.0000001
-    }
+    "lastBackupDate": "2025-05-25"
   }
 }
 ```
@@ -1345,11 +1326,7 @@ PUT /api/settings
   "reminderEnabled": boolean,
   "reminderTime": "HH:MM",
   "backupEnabled": boolean,
-  "backupFrequency": "string",
-  "analytics": {
-    "cacheEnabled": boolean,
-    "cacheDuration": number
-  }
+  "backupFrequency": "string"
 }
 ```
 
@@ -1365,11 +1342,7 @@ PUT /api/settings
     "reminderTime": "HH:MM",
     "backupEnabled": boolean,
     "backupFrequency": "string",
-    "lastBackupDate": "YYYY-MM-DD",
-    "analytics": {
-      "cacheEnabled": boolean,
-      "cacheDuration": number
-    }
+    "lastBackupDate": "YYYY-MM-DD"
   },
   "message": "Settings updated successfully"
 }
