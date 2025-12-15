@@ -1060,24 +1060,24 @@ const Weekly: React.FC = () => {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div className="animate-pulse h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-          <div className="animate-pulse h-10 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="animate-pulse h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2 sm:w-1/3"></div>
+          <div className="animate-pulse h-10 bg-gray-200 dark:bg-gray-700 rounded w-28 sm:w-32"></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse">
-              <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-24 sm:h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
           ))}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <div key={i} className="animate-pulse">
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2 w-1/4"></div>
-              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-5 sm:h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2 w-1/3 sm:w-1/4"></div>
+              <div className="h-14 sm:h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
           ))}
         </div>
@@ -1093,19 +1093,19 @@ const Weekly: React.FC = () => {
       {/* Header with Week Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center">
-          <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center ml-3">
-            <Calendar className="w-6 h-6 text-blue-500" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center ml-3">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
               المتابعة الأسبوعية
             </h1>
-            <div className="flex items-center text-gray-600 dark:text-gray-300">
-              <span className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded text-sm font-medium">
+            <div className="flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+              <span className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded text-xs sm:text-sm font-medium">
                 {weekDateRangeDisplay}
               </span>
               {weeklyRecords && (
-                <span className="mr-3 text-sm">
+                <span className="mr-0 sm:mr-3 text-xs sm:text-sm">
                   {weeklyRecords.records.reduce(
                     (sum, day) => sum + (day.records ? day.records.length : 0),
                     0
@@ -1117,7 +1117,7 @@ const Weekly: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 space-x-reverse bg-gray-50 dark:bg-gray-700 p-1 rounded-lg">
+        <div className="flex items-center justify-between sm:justify-end space-x-2 space-x-reverse bg-gray-50 dark:bg-gray-700 p-1 rounded-lg">
           <Button
             onClick={goToPreviousWeek}
             variant="ghost"
@@ -1131,7 +1131,7 @@ const Weekly: React.FC = () => {
             onClick={goToCurrentWeek}
             variant="secondary"
             size="sm"
-            className="px-3 py-1"
+            className="px-3 py-1 text-xs sm:text-sm whitespace-nowrap"
           >
             الأسبوع الحالي
           </Button>
@@ -1185,7 +1185,9 @@ const Weekly: React.FC = () => {
             <Card className="md:col-span-4 shadow-sm transition-all hover:shadow-md hover:translate-y-[-2px]">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">التقدم الأسبوعي</h3>
+                  <h3 className="text-base md:text-lg font-semibold">
+                    التقدم الأسبوعي
+                  </h3>
                   <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
                     <ArrowUp
                       className={`w-5 h-5 ${
@@ -1276,7 +1278,9 @@ const Weekly: React.FC = () => {
               <Card className="md:col-span-4 shadow-sm transition-all hover:shadow-md hover:translate-y-[-2px]">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Most Productive</h3>
+                    <h3 className="text-base md:text-lg font-semibold">
+                      Most Productive
+                    </h3>
                     <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
                       <Check className="w-5 h-5 text-green-500" />
                     </div>
@@ -1331,7 +1335,9 @@ const Weekly: React.FC = () => {
               <Card className="md:col-span-4 shadow-sm transition-all hover:shadow-md hover:translate-y-[-2px]">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">يحتاج انتباه</h3>
+                    <h3 className="text-base md:text-lg font-semibold">
+                      يحتاج انتباه
+                    </h3>
                     <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
                       <svg
                         className="w-5 h-5 text-amber-500"
@@ -1397,11 +1403,13 @@ const Weekly: React.FC = () => {
       )}
 
       {/* Daily Habits Board - Vertical columns for each day */}
-      <Card className="shadow-sm hover:shadow-md transition-all mb-6">
-        <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Weekly Habit Board</h3>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+      <Card className="shadow-sm hover:shadow-md transition-all mb-4">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <h3 className="text-base md:text-lg font-semibold">
+              Weekly Habit Board
+            </h3>
+            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               {weeklyRecords
                 ? `${weeklyRecords.records.reduce(
                     (sum, day) =>
@@ -1415,7 +1423,7 @@ const Weekly: React.FC = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="px-2 sm:px-4 py-3 sm:py-4">
           {dailyRecords.length > 0 ? (
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
               {dailyRecords.map((dayRecord) => (

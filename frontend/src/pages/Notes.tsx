@@ -137,11 +137,11 @@ const Notes: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-4 py-6 sm:px-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
             اليوميات
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -152,37 +152,39 @@ const Notes: React.FC = () => {
         </div>
 
         {/* View Mode Switcher */}
-        <div className="flex bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1 shadow-sm">
-          {(["calendar", "list", "analytics"] as ViewMode[]).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={`flex items-center space-x-2 space-x-reverse px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === mode
-                  ? "bg-blue-500 text-white shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-            >
-              {getViewModeIcon(mode)}
-              <span className="capitalize">
-                {mode === "calendar"
-                  ? "تقويم"
-                  : mode === "list"
-                  ? "قائمة"
-                  : "تحليلات"}
-              </span>
-            </button>
-          ))}
+        <div className="w-full overflow-x-auto">
+          <div className="inline-flex bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1 shadow-sm space-x-1 space-x-reverse">
+            {(["calendar", "list", "analytics"] as ViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`flex items-center space-x-2 space-x-reverse px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  viewMode === mode
+                    ? "bg-blue-500 text-white shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`}
+              >
+                {getViewModeIcon(mode)}
+                <span className="capitalize">
+                  {mode === "calendar"
+                    ? "تقويم"
+                    : mode === "list"
+                    ? "قائمة"
+                    : "تحليلات"}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Calendar View Navigation (only show for calendar mode) */}
       {viewMode === "calendar" && (
         <Card>
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 space-x-reverse">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <div className="px-3 py-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center flex-wrap gap-2 sm:space-x-4 sm:space-x-reverse">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {format(currentDate, "MMMM yyyy", { locale: arSA })}
                 </h2>
                 <Badge variant="default" size="sm">
@@ -190,7 +192,7 @@ const Notes: React.FC = () => {
                 </Badge>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between sm:justify-end space-x-1 sm:space-x-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -201,6 +203,7 @@ const Notes: React.FC = () => {
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="px-3 py-1 text-xs sm:text-sm whitespace-nowrap"
                   onClick={() => setCurrentDate(new Date())}
                 >
                   اليوم

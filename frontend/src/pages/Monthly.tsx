@@ -266,17 +266,22 @@ const Monthly: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div className="flex items-center justify-between md:justify-start gap-3">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             العرض الشهري
           </h1>
-          <Button onClick={goToCurrentMonth} variant="secondary" size="sm">
+          <Button
+            onClick={goToCurrentMonth}
+            variant="secondary"
+            size="sm"
+            className="whitespace-nowrap"
+          >
             الشهر الحالي
           </Button>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between md:justify-end gap-3">
           {/* Export Button */}
           <Button
             onClick={exportMonthData}
@@ -288,7 +293,7 @@ const Monthly: React.FC = () => {
           </Button>
 
           {/* Navigation */}
-          <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 p-1 rounded-lg">
+          <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-700 p-1 rounded-lg">
             <Button
               onClick={goToPreviousMonth}
               variant="ghost"
@@ -299,7 +304,7 @@ const Monthly: React.FC = () => {
             </Button>
 
             <div className="text-center min-w-[140px]">
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              <p className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                 {getArabicMonthName(format(currentDate, "MMMM"))}{" "}
                 {format(currentDate, "yyyy")}
               </p>
@@ -430,79 +435,89 @@ const Monthly: React.FC = () => {
           {/* Daily Cards Grid */}
           <Card className="shadow-sm hover:shadow-md transition-all mb-8">
             <CardHeader>
-              <h3 className="text-lg font-semibold">التقدم اليومي</h3>
+              <h3 className="text-base md:text-lg font-semibold">
+                التقدم اليومي
+              </h3>
             </CardHeader>
             <CardContent className="p-4 md:p-6">
-              {/* Day Headers */}
-              <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2 md:mb-4">
-                {[
-                  "الأحد",
-                  "الإثنين",
-                  "الثلاثاء",
-                  "الأربعاء",
-                  "الخميس",
-                  "الجمعة",
-                  "السبت",
-                ].map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400 py-1 md:py-2"
-                  >
-                    {day}
+              {/* Make calendar horizontally scrollable on very small screens */}
+              <div className="overflow-x-auto md:overflow-visible">
+                <div className="min-w-[520px] md:min-w-0">
+                  {/* Day Headers */}
+                  <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2 md:mb-4">
+                    {[
+                      "الأحد",
+                      "الإثنين",
+                      "الثلاثاء",
+                      "الأربعاء",
+                      "الخميس",
+                      "الجمعة",
+                      "السبت",
+                    ].map((day) => (
+                      <div
+                        key={day}
+                        className="text-center text-[10px] sm:text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400 py-1 md:py-2"
+                      >
+                        {day}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              {/* Calendar Grid with Cards */}
-              <div className="grid grid-cols-7 gap-1 md:gap-3">
-                {allDays.map((date, index) => {
-                  if (!date) {
-                    return <div key={index} className="h-24 md:h-36"></div>;
-                  }
+                  {/* Calendar Grid with Cards */}
+                  <div className="grid grid-cols-7 gap-1 md:gap-3">
+                    {allDays.map((date, index) => {
+                      if (!date) {
+                        return (
+                          <div key={index} className="h-20 sm:h-24 md:h-36"></div>
+                        );
+                      }
 
-                  const dayData = monthlyData.dailyCompletionCounts.find((d) =>
-                    isSameDay(new Date(d.date), date)
-                  );
+                      const dayData = monthlyData.dailyCompletionCounts.find(
+                        (d) => isSameDay(new Date(d.date), date)
+                      );
 
-                  const completionRate = dayData
-                    ? dayData.completionRate * 100
-                    : 0;
-                  const isCurrentDay = isToday(date);
-                  const hasHabits = dayData && dayData.totalHabits > 0;
+                      const completionRate = dayData
+                        ? dayData.completionRate * 100
+                        : 0;
+                      const isCurrentDay = isToday(date);
+                      const hasHabits = dayData && dayData.totalHabits > 0;
 
-                  // Get completion rate color
-                  const getCompletionColor = (rate: number) => {
-                    if (rate === 0) return "text-gray-400 dark:text-gray-500";
-                    if (rate < 30) return "text-red-500 dark:text-red-400";
-                    if (rate < 60)
-                      return "text-yellow-500 dark:text-yellow-400";
-                    if (rate < 80) return "text-blue-500 dark:text-blue-400";
-                    return "text-green-500 dark:text-green-400";
-                  };
+                      // Get completion rate color
+                      const getCompletionColor = (rate: number) => {
+                        if (rate === 0)
+                          return "text-gray-400 dark:text-gray-500";
+                        if (rate < 30) return "text-red-500 dark:text-red-400";
+                        if (rate < 60)
+                          return "text-yellow-500 dark:text-yellow-400";
+                        if (rate < 80) return "text-blue-500 dark:text-blue-400";
+                        return "text-green-500 dark:text-green-400";
+                      };
 
-                  const getBorderColor = (rate: number) => {
-                    if (rate === 0)
-                      return "border-gray-200 dark:border-gray-700";
-                    if (rate < 30) return "border-red-200 dark:border-red-800";
-                    if (rate < 60)
-                      return "border-yellow-200 dark:border-yellow-800";
-                    if (rate < 80)
-                      return "border-blue-200 dark:border-blue-800";
-                    return "border-green-200 dark:border-green-800";
-                  };
+                      const getBorderColor = (rate: number) => {
+                        if (rate === 0)
+                          return "border-gray-200 dark:border-gray-700";
+                        if (rate < 30)
+                          return "border-red-200 dark:border-red-800";
+                        if (rate < 60)
+                          return "border-yellow-200 dark:border-yellow-800";
+                        if (rate < 80)
+                          return "border-blue-200 dark:border-blue-800";
+                        return "border-green-200 dark:border-green-800";
+                      };
 
-                  const getBackgroundColor = (rate: number) => {
-                    if (rate === 0) return "bg-gray-50 dark:bg-gray-800";
-                    if (rate < 30) return "bg-red-50 dark:bg-red-900/20";
-                    if (rate < 60) return "bg-yellow-50 dark:bg-yellow-900/20";
-                    if (rate < 80) return "bg-blue-50 dark:bg-blue-900/20";
-                    return "bg-green-50 dark:bg-green-900/20";
-                  };
+                      const getBackgroundColor = (rate: number) => {
+                        if (rate === 0) return "bg-gray-50 dark:bg-gray-800";
+                        if (rate < 30) return "bg-red-50 dark:bg-red-900/20";
+                        if (rate < 60)
+                          return "bg-yellow-50 dark:bg-yellow-900/20";
+                        if (rate < 80) return "bg-blue-50 dark:bg-blue-900/20";
+                        return "bg-green-50 dark:bg-green-900/20";
+                      };
 
-                  return (
-                    <div
-                      key={date.toISOString()}
-                      className={`
+                      return (
+                        <div
+                          key={date.toISOString()}
+                          className={`
             h-24 md:h-36 rounded-lg border transition-all duration-200 
             ${getBorderColor(completionRate)}
             ${getBackgroundColor(completionRate)}
@@ -514,104 +529,108 @@ const Monthly: React.FC = () => {
             }
             p-2 md:p-3 flex flex-col justify-between relative overflow-hidden
           `}
-                      onClick={() => hasHabits && handleDayClick(dayData)}
-                    >
-                      {/* Date Header */}
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`text-base md:text-lg font-bold ${
-                            isCurrentDay
-                              ? "text-blue-600 dark:text-blue-400"
-                              : "text-gray-700 dark:text-gray-300"
-                          }`}
+                          onClick={() => hasHabits && handleDayClick(dayData)}
                         >
-                          {format(date, "d")}
-                        </span>
-                        {isCurrentDay && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        )}
-                      </div>
-
-                      {/* Progress Info */}
-                      {hasHabits ? (
-                        <div className="mt-auto">
-                          {/* Habit Count & Day Name in one row */}
-                          <div className="flex justify-between items-center mb-1">
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              {dayData.count}/{dayData.totalHabits}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {dayData.dayName.slice(0, 3)}
-                            </div>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-1">
-                            <div
-                              className={`h-1.5 rounded-full transition-all duration-300 ${
-                                completionRate === 0
-                                  ? "bg-gray-300"
-                                  : completionRate < 30
-                                  ? "bg-red-500"
-                                  : completionRate < 60
-                                  ? "bg-yellow-500"
-                                  : completionRate < 80
-                                  ? "bg-blue-500"
-                                  : "bg-green-500"
+                          {/* Date Header */}
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`text-sm sm:text-base md:text-lg font-bold ${
+                                isCurrentDay
+                                  ? "text-blue-600 dark:text-blue-400"
+                                  : "text-gray-700 dark:text-gray-300"
                               }`}
-                              style={{ width: `${completionRate}%` }}
-                            ></div>
+                            >
+                              {format(date, "d")}
+                            </span>
+                            {isCurrentDay && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
                           </div>
 
-                          {/* Completion Rate */}
-                          <div
-                            className={`text-base md:text-xl font-bold ${getCompletionColor(
-                              completionRate
-                            )}`}
-                          >
-                            {Math.round(completionRate)}%
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-auto">
-                          <div className="text-xs text-gray-400 dark:text-gray-500">
-                            No habits
-                          </div>
-                        </div>
-                      )}
+                          {/* Progress Info */}
+                          {hasHabits ? (
+                            <div className="mt-auto">
+                              {/* Habit Count & Day Name in one row */}
+                              <div className="flex justify-between items-center mb-1">
+                                <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                                  {dayData.count}/{dayData.totalHabits}
+                                </div>
+                                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                  {dayData.dayName.slice(0, 3)}
+                                </div>
+                              </div>
 
-                      {/* Activity Indicator (small dots for visual enhancement) */}
-                      {hasHabits && (
-                        <div className="absolute top-1 right-1">
-                          <div
-                            className={`flex space-x-0.5 ${
-                              completionRate >= 80 ? "opacity-80" : "opacity-40"
-                            }`}
-                          >
-                            {[
-                              ...Array(
-                                Math.min(3, Math.ceil(dayData.count / 2))
-                              ),
-                            ].map((_, i) => (
+                              {/* Progress Bar */}
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-1">
+                                <div
+                                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                                    completionRate === 0
+                                      ? "bg-gray-300"
+                                      : completionRate < 30
+                                      ? "bg-red-500"
+                                      : completionRate < 60
+                                      ? "bg-yellow-500"
+                                      : completionRate < 80
+                                      ? "bg-blue-500"
+                                      : "bg-green-500"
+                                  }`}
+                                  style={{ width: `${completionRate}%` }}
+                                ></div>
+                              </div>
+
+                              {/* Completion Rate */}
                               <div
-                                key={i}
-                                className={`w-1 h-1 rounded-full ${
+                                className={`text-sm sm:text-base md:text-xl font-bold ${getCompletionColor(
+                                  completionRate
+                                )}`}
+                              >
+                                {Math.round(completionRate)}%
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-auto">
+                              <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
+                                No habits
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Activity Indicator (small dots for visual enhancement) */}
+                          {hasHabits && (
+                            <div className="absolute top-1 right-1">
+                              <div
+                                className={`flex space-x-0.5 ${
                                   completionRate >= 80
-                                    ? "bg-green-500"
-                                    : completionRate >= 60
-                                    ? "bg-blue-500"
-                                    : completionRate >= 30
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
+                                    ? "opacity-80"
+                                    : "opacity-40"
                                 }`}
-                              ></div>
-                            ))}
-                          </div>
+                              >
+                                {[
+                                  ...Array(
+                                    Math.min(3, Math.ceil(dayData.count / 2))
+                                  ),
+                                ].map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className={`w-1 h-1 rounded-full ${
+                                      completionRate >= 80
+                                        ? "bg-green-500"
+                                        : completionRate >= 60
+                                        ? "bg-blue-500"
+                                        : completionRate >= 30
+                                        ? "bg-yellow-500"
+                                        : "bg-red-500"
+                                    }`}
+                                  ></div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

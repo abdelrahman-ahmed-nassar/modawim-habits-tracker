@@ -365,17 +365,22 @@ const Yearly: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div className="flex items-center justify-between md:justify-start gap-3">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             العرض السنوي
           </h1>
-          <Button onClick={goToCurrentYear} variant="secondary" size="sm">
+          <Button
+            onClick={goToCurrentYear}
+            variant="secondary"
+            size="sm"
+            className="whitespace-nowrap"
+          >
             السنة الحالية
           </Button>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between md:justify-end gap-3">
           {/* Export Button */}
           <Button
             onClick={exportYearData}
@@ -387,7 +392,7 @@ const Yearly: React.FC = () => {
           </Button>
 
           {/* Navigation */}
-          <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 p-1 rounded-lg">
+          <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-700 p-1 rounded-lg">
             <Button
               onClick={goToPreviousYear}
               variant="ghost"
@@ -398,7 +403,7 @@ const Yearly: React.FC = () => {
             </Button>
 
             <div className="text-center min-w-[100px]">
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              <p className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                 {yearlyData?.year || format(currentDate, "yyyy")}
               </p>
             </div>
@@ -423,7 +428,9 @@ const Yearly: React.FC = () => {
             <Card className="shadow-sm hover:shadow-md transition-all">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">التقدم السنوي</h3>
+                  <h3 className="text-base md:text-lg font-semibold">
+                    التقدم السنوي
+                  </h3>
                   <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
                     <BarChart2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
@@ -452,7 +459,9 @@ const Yearly: React.FC = () => {
               <Card className="shadow-sm hover:shadow-md transition-all">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">أفضل شهر</h3>
+                    <h3 className="text-base md:text-lg font-semibold">
+                      أفضل شهر
+                    </h3>
                     <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
                       <Award className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
@@ -477,7 +486,9 @@ const Yearly: React.FC = () => {
               <Card className="shadow-sm hover:shadow-md transition-all">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">يحتاج تحسين</h3>
+                    <h3 className="text-base md:text-lg font-semibold">
+                      يحتاج تحسين
+                    </h3>
                     <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
                       <TrendingUp className="w-5 h-5 text-red-600 dark:text-red-400" />
                     </div>
@@ -502,7 +513,9 @@ const Yearly: React.FC = () => {
               <Card className="shadow-sm hover:shadow-md transition-all">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">أفضل عادة</h3>
+                    <h3 className="text-base md:text-lg font-semibold">
+                      أفضل عادة
+                    </h3>
                     <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
                       <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                     </div>
@@ -526,10 +539,10 @@ const Yearly: React.FC = () => {
           {/* Monthly Performance Chart */}
           <Card className="mb-8 shadow-sm">
             <CardHeader className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold">الأداء الشهري</h3>
+              <h3 className="text-lg md:text-xl font-semibold">الأداء الشهري</h3>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="h-[400px]">
+              <div className="h-[320px] sm:h-[400px]">
                 <ReactApexChart
                   options={{
                     chart: {
@@ -604,7 +617,9 @@ const Yearly: React.FC = () => {
           {/* Top Habits */}
           <Card className="mb-8 shadow-sm">
             <CardHeader className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold">Top Performing Habits</h3>
+              <h3 className="text-lg md:text-xl font-semibold">
+                Top Performing Habits
+              </h3>
             </CardHeader>
             <CardContent className="p-6">
               {yearlyData.topHabits.length > 0 ? (
@@ -612,13 +627,15 @@ const Yearly: React.FC = () => {
                   {yearlyData.topHabits.map((habit, index) => (
                     <div
                       key={habit.habitId}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                     >
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
                           {index + 1}
                         </div>
-                        <div className="font-medium">{habit.habitName}</div>
+                        <div className="font-medium truncate max-w-[200px] sm:max-w-none">
+                          {habit.habitName}
+                        </div>
                       </div>
                       <Badge variant="success">
                         {Math.round(habit.completionRate * 100)}%
@@ -635,7 +652,7 @@ const Yearly: React.FC = () => {
           </Card>
 
           {/* Quarter Analytics */}
-          <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+          <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-900 dark:text-white">
             تحليل الأرباع السنوية
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

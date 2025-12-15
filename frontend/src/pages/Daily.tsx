@@ -463,12 +463,12 @@ const Daily: React.FC = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-6 w-1/3"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-6 w-1/2 sm:w-1/3"></div>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-32 bg-gray-200 dark:bg-gray-700 rounded"
+                className="h-24 sm:h-32 bg-gray-200 dark:bg-gray-700 rounded"
               ></div>
             ))}
           </div>
@@ -483,16 +483,16 @@ const Daily: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header with Date Navigation */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4 space-x-reverse">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+        <div className="flex items-center justify-between md:justify-start space-x-3 space-x-reverse">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             المتابعة اليومية
           </h1>
           <Button
             onClick={goToToday}
             variant="secondary"
             size="sm"
-            className="text-sm"
+            className="text-xs sm:text-sm whitespace-nowrap"
           >
             اليوم
           </Button>
@@ -510,7 +510,7 @@ const Daily: React.FC = () => {
           </Button>
         </div>
 
-        <div className="flex items-center space-x-4 space-x-reverse">
+        <div className="flex items-center justify-between md:justify-end space-x-3 space-x-reverse">
           <Button
             onClick={goToPreviousDay}
             variant="ghost"
@@ -520,8 +520,8 @@ const Daily: React.FC = () => {
             <ChevronLeft className="w-5 h-5" />
           </Button>
 
-          <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="text-center max-w-[180px] sm:max-w-none">
+            <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white leading-snug">
               {displayDate}
             </p>
           </div>
@@ -561,7 +561,7 @@ const Daily: React.FC = () => {
       {/* Modern Main Tabs */}
       <div className="mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-1 shadow-sm">
-          <nav className="flex space-x-1 space-x-reverse">
+          <nav className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1 sm:space-x-reverse">
             {" "}
             <button
               onClick={() => setActiveTab("habits")}

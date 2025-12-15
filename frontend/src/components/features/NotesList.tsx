@@ -202,44 +202,46 @@ const NotesList: React.FC<NotesListProps> = ({
 
           {/* Filters and Sort Controls */}
           <div className="flex flex-wrap items-center gap-4">
-            {/* Sort Controls */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {/* Sort Controls (horizontal scroll on small screens) */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                 ترتيب حسب:
               </span>
-              <div className="flex space-x-1">
-                {[
-                  { key: "date" as SortBy, label: "التاريخ", icon: Calendar },
-                  { key: "length" as SortBy, label: "الطول", icon: FileText },
-                  { key: "mood" as SortBy, label: "المزاج", icon: Heart },
-                  {
-                    key: "productivity" as SortBy,
-                    label: "الإنتاجية",
-                    icon: Zap,
-                  },
-                ].map(({ key, label, icon: Icon }) => (
-                  <Button
-                    key={key}
-                    variant={sortBy === key ? "primary" : "ghost"}
-                    size="sm"
-                    onClick={() => handleSort(key)}
-                    className="flex items-center space-x-1"
-                  >
-                    <Icon className="w-3 h-3" />
-                    <span>{label}</span>
-                    {sortBy === key &&
-                      (sortOrder === "asc" ? (
-                        <SortAsc className="w-3 h-3" />
-                      ) : (
-                        <SortDesc className="w-3 h-3" />
-                      ))}
-                  </Button>
-                ))}
+              <div className="w-full sm:w-auto overflow-x-auto">
+                <div className="inline-flex space-x-1 space-x-reverse">
+                  {[
+                    { key: "date" as SortBy, label: "التاريخ", icon: Calendar },
+                    { key: "length" as SortBy, label: "الطول", icon: FileText },
+                    { key: "mood" as SortBy, label: "المزاج", icon: Heart },
+                    {
+                      key: "productivity" as SortBy,
+                      label: "الإنتاجية",
+                      icon: Zap,
+                    },
+                  ].map(({ key, label, icon: Icon }) => (
+                    <Button
+                      key={key}
+                      variant={sortBy === key ? "primary" : "ghost"}
+                      size="sm"
+                      onClick={() => handleSort(key)}
+                      className="flex items-center space-x-1 space-x-reverse whitespace-nowrap"
+                    >
+                      <Icon className="w-3 h-3" />
+                      <span>{label}</span>
+                      {sortBy === key &&
+                        (sortOrder === "asc" ? (
+                          <SortAsc className="w-3 h-3" />
+                        ) : (
+                          <SortDesc className="w-3 h-3" />
+                        ))}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Filters */}
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-3 sm:space-x-4">
               {/* Mood Filter */}
               {uniqueMoods.length > 0 && (
                 <div className="flex items-center space-x-2">
