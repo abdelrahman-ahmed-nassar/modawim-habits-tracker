@@ -26,7 +26,6 @@ interface HabitFormData {
   tag: string;
   repetition: "daily" | "weekly" | "monthly";
   specificDays?: number[];
-  goalType: "counter" | "streak";
   goalValue: number;
   motivationNote?: string;
   isActive: boolean;
@@ -37,7 +36,6 @@ const defaultHabitData: HabitFormData = {
   description: "",
   tag: "",
   repetition: "daily",
-  goalType: "streak",
   goalValue: 1,
   motivationNote: "",
   isActive: true,
@@ -103,7 +101,6 @@ const HabitsManager: React.FC = () => {
       description: habit.description || "",
       tag: habit.tag,
       repetition: habit.repetition,
-      goalType: habit.goalType,
       goalValue: habit.goalValue,
       motivationNote: habit.motivationNote || "",
       isActive: habit.isActive !== false, // Default to true if not specified
@@ -211,7 +208,6 @@ const HabitsManager: React.FC = () => {
         tag: habit.tag,
         repetition: habit.repetition,
         specificDays: habit.specificDays,
-        goalType: habit.goalType,
         goalValue: habit.goalValue,
         motivationNote: habit.motivationNote || "",
         isActive: !habit.isActive,
@@ -384,8 +380,7 @@ const HabitsManager: React.FC = () => {
             {habit.tag}
           </span>
           <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded-full text-xs">
-            الهدف: {habit.goalValue}{" "}
-            {habit.goalType === "streak" ? "أيام" : "مرات"}
+            الهدف: {habit.goalValue} أيام
           </span>
           {habit.isActive === false && (
             <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs">
@@ -609,17 +604,6 @@ const HabitsManager: React.FC = () => {
             fullWidth
           />
           {renderDaySelector()}
-          <Select
-            label="نوع الهدف"
-            name="goalType"
-            value={formData.goalType}
-            onChange={handleInputChange}
-            options={[
-              { value: "streak", label: "سلسلة" },
-              { value: "counter", label: "عداد" },
-            ]}
-            fullWidth
-          />
           <Input
             label="قيمة الهدف"
             name="goalValue"

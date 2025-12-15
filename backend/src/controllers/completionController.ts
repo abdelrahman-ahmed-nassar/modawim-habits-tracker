@@ -88,7 +88,7 @@ export const getHabitCompletions = asyncHandler(
 export const markHabitComplete = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { date, completed, value, habitId } = req.body;
+    const { date, completed, habitId } = req.body;
 
     // Use habitId from body if id param is not provided (for /completions endpoints)
     const targetHabitId = id || habitId;
@@ -116,22 +116,12 @@ export const markHabitComplete = asyncHandler(
       habitId: targetHabitId,
       date,
       completed: completed !== undefined ? completed : true,
-      value: value !== undefined ? value : undefined,
     };
 
     // Validate completion data
     const errors = validateCompletion(completionData);
     if (errors.length > 0) {
       throw new AppError("Invalid completion data", 400, errors);
-    }
-
-    // For counter type habits, ensure value is provided when completed is true
-    if (
-      habit.goalType === "counter" &&
-      completionData.completed &&
-      completionData.value === undefined
-    ) {
-      throw new AppError("Value is required for counter-type habits", 400);
     }
 
     // Save completion
@@ -245,7 +235,7 @@ export const getCompletionsInRange = asyncHandler(
 export const updateCompletion = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { completed, value } = req.body;
+    const { completed } = req.body;
 
     // Get all completions to find the one to update
     const completions = await dataService.getCompletions();
@@ -264,24 +254,14 @@ export const updateCompletion = asyncHandler(
       throw new AppError(`Cannot update completions for inactive habits`, 400);
     }
 
-    // For counter type habits, ensure value is provided when completed is true
-    if (habit.goalType === "counter" && completed && value === undefined) {
-      throw new AppError("Value is required for counter-type habits", 400);
-    }
-
-    // For counter-type habits, automatically determine completion status based on value and goal
-    let finalCompleted = completed;
-    if (habit.goalType === "counter" && value !== undefined) {
-      finalCompleted = value >= habit.goalValue;
-    } else if (completed === undefined) {
-      finalCompleted = completion.completed;
-    }
+    // Determine completion status
+    const finalCompleted =
+      completed === undefined ? completion.completed : completed;
 
     // Update completion data
     const updatedCompletion = {
       ...completion,
       completed: finalCompleted,
-      value: value !== undefined ? value : completion.value,
       completedAt: new Date().toISOString(),
     };
 
@@ -331,7 +311,7 @@ export const createCompletionsBatch = asyncHandler(
     const activeHabitIds = allHabits.filter((h) => h.isActive).map((h) => h.id);
 
     for (const completionData of completions) {
-      const { habitId, date, completed, value } = completionData;
+      const { habitId, date, completed } = completionData;
 
       // Basic validation
       if (!habitId || !date) {
@@ -353,7 +333,6 @@ export const createCompletionsBatch = asyncHandler(
         habitId,
         date,
         completed: completed !== undefined ? completed : true,
-        value: value !== undefined ? value : undefined,
       };
 
       // Validate completion data
@@ -363,18 +342,6 @@ export const createCompletionsBatch = asyncHandler(
           `Invalid completion data for habit ${habitId}`,
           400,
           errors
-        );
-      }
-
-      // For counter type habits, ensure value is provided when completed is true
-      if (
-        habit.goalType === "counter" &&
-        completionToCreate.completed &&
-        completionToCreate.value === undefined
-      ) {
-        throw new AppError(
-          `Value is required for counter-type habit ${habitId}`,
-          400
         );
       }
 

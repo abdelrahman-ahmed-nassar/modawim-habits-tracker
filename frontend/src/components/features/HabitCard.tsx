@@ -4,7 +4,6 @@ import Card, { CardContent, CardHeader } from "../ui/Card";
 import Badge from "../ui/Badge";
 import Button from "../ui/Button";
 import Progress from "../ui/Progress";
-import CounterInput from "../ui/CounterInput";
 
 interface Record {
   id: string;
@@ -14,9 +13,7 @@ interface Record {
   completedAt: string;
   habitName: string;
   habitTag: string;
-  goalType: string;
   goalValue: number;
-  value: number;
   // Analytics fields
   currentStreak: number;
   bestStreak: number;
@@ -26,27 +23,19 @@ interface Record {
 interface HabitCardProps {
   record: Record;
   onToggleCompletion: (habitId: string) => void;
-  onValueUpdate?: (habitId: string, value: number) => void;
   isUpdating?: boolean;
 }
 
 const HabitCard: React.FC<HabitCardProps> = ({
   record,
   onToggleCompletion,
-  onValueUpdate,
   isUpdating = false,
 }) => {
   const getProgressValue = () => {
-    if (record.goalType === "counter") {
-      return Math.min((record.value / record.goalValue) * 100, 100);
-    }
     return record.completed ? 100 : 0;
   };
 
   const getProgressDisplay = () => {
-    if (record.goalType === "counter") {
-      return `${record.value}/${record.goalValue}`;
-    }
     return record.completed ? "مكتمل" : "غير مكتمل";
   };
 
@@ -56,7 +45,7 @@ const HabitCard: React.FC<HabitCardProps> = ({
     <Card
       className={`transition-all duration-200 hover:shadow-md  flex flex-col flex${
         record.completed ? "ring-2 ring-green-200 dark:ring-green-800" : ""
-      } ${record.goalType === "streak" ? "min-h-[310px]" : "min-h-[380px]"}`}
+      } min-h-[310px]`}
     >
       <CardHeader
         title={
@@ -117,15 +106,14 @@ const HabitCard: React.FC<HabitCardProps> = ({
         {/* Goal Type Badge */}
         <div className="flex items-center justify-between">
           <Badge variant="info" size="sm">
-            {record.goalType === "streak" ? "هدف السلسلة" : "هدف العداد"}
+            هدف السلسلة
           </Badge>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            الهدف: {record.goalValue}{" "}
-            {record.goalType === "streak" ? "أيام" : "مرات"}
+            الهدف: {record.goalValue} أيام
           </span>{" "}
         </div>{" "}
         {/* Completion Controls */}
-        {record.value >= record.goalValue && (
+        {record.completed && (
           <div className="text-center">
             <Badge variant="success" size="sm">
               تم إكمال الهدف! 🎉
@@ -137,50 +125,32 @@ const HabitCard: React.FC<HabitCardProps> = ({
             تم الإكمال في {new Date(record.completedAt).toLocaleTimeString()}
           </div>
         )}
-        {record.goalType === "counter" ? (
-          <div className="space-y-3">
-            <div className="text-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">
-                تحديث العدد
-              </span>
-              <CounterInput
-                value={record.value}
-                goalValue={record.goalValue}
-                onValueChange={(value) =>
-                  onValueUpdate?.(record.habitId, value)
-                }
-                disabled={isUpdating}
-              />
-            </div>
+        <Button
+          onClick={() => onToggleCompletion(record.habitId)}
+          variant={record.completed ? "success" : "primary"}
+          className="w-full"
+          size="sm"
+          disabled={isUpdating}
+        >
+          <div className="flex items-center justify-center space-x-2">
+            {isUpdating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <span>جارٍ التحديث...</span>
+              </>
+            ) : record.completed ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>مكتمل</span>
+              </>
+            ) : (
+              <>
+                <div className="w-4 h-4 border-2 border-current rounded"></div>
+                <span>وضع علامة مكتمل</span>
+              </>
+            )}
           </div>
-        ) : (
-          <Button
-            onClick={() => onToggleCompletion(record.habitId)}
-            variant={record.completed ? "success" : "primary"}
-            className="w-full"
-            size="sm"
-            disabled={isUpdating}
-          >
-            <div className="flex items-center justify-center space-x-2">
-              {isUpdating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                  <span>جارٍ التحديث...</span>
-                </>
-              ) : record.completed ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>مكتمل</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-4 h-4 border-2 border-current rounded"></div>
-                  <span>وضع علامة مكتمل</span>
-                </>
-              )}
-            </div>
-          </Button>
-        )}
+        </Button>
         {/* Completion Time */}
       </CardContent>
     </Card>

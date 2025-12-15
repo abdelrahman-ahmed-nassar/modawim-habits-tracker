@@ -34,9 +34,7 @@ interface Record {
   completedAt: string;
   habitName: string;
   habitTag: string;
-  goalType: string;
   goalValue: number;
-  value: number; // Analytics fields
   currentStreak: number;
   bestStreak: number;
   currentCounter: number;
@@ -148,18 +146,7 @@ const Daily: React.FC = () => {
         ); // Create records for habits scheduled for today, using existing completions or defaults
         const records = habitsForToday.map((habit) => {
           const completion = completionMap.get(habit.id);
-          let value = 0;
-          let completed = false;
-
-          if (completion) {
-            if (habit.goalType === "counter") {
-              value = completion.value || 0;
-              completed = value >= habit.goalValue;
-            } else {
-              value = completion.completed ? 1 : 0;
-              completed = completion.completed;
-            }
-          }
+          const completed = completion ? completion.completed : false;
 
           return {
             id: completion?.id || `temp-${habit.id}`,
@@ -169,9 +156,7 @@ const Daily: React.FC = () => {
             completedAt: completion?.completedAt || "",
             habitName: habit.name,
             habitTag: habit.tag,
-            goalType: habit.goalType,
             goalValue: habit.goalValue,
-            value,
             // Add analytics data from habit object
             currentStreak: habit.currentStreak || 0,
             bestStreak: habit.bestStreak || 0,
@@ -285,21 +270,12 @@ const Daily: React.FC = () => {
     if (recordIndex !== -1) {
       const currentRecord = optimisticRecords.records[recordIndex];
       const newCompleted = !currentRecord.completed;
-      let newValue = currentRecord.value;
-
-      // For counter-type habits, toggle between 0 and goal value
-      if (currentRecord.goalType === "counter") {
-        newValue = newCompleted ? currentRecord.goalValue : 0;
-      } else {
-        newValue = newCompleted ? 1 : 0;
-      }
 
       // Update the record
       optimisticRecords.records[recordIndex] = {
         ...currentRecord,
         completed: newCompleted,
         completedAt: newCompleted ? new Date().toISOString() : "",
-        value: newValue,
       };
 
       // Recalculate stats
@@ -321,16 +297,7 @@ const Daily: React.FC = () => {
     }
     try {
       // Make API call in background
-      const record = optimisticRecords.records[recordIndex];
-      if (record && record.goalType === "counter") {
-        await completionsService.updateCompletionValue(
-          habitId,
-          formattedDate,
-          record.value
-        );
-      } else {
-        await RecordsService.toggleCompletion(habitId, formattedDate);
-      }
+      await RecordsService.toggleCompletion(habitId, formattedDate);
 
       // Fetch updated habit data to get the latest analytics (streaks, counter)
       const updatedHabit = await habitsService.getHabit(habitId);
@@ -369,92 +336,6 @@ const Daily: React.FC = () => {
     }
   };
 
-  const updateHabitValue = async (habitId: string, value: number) => {
-    if (!dailyRecords) return;
-
-    // Add habit to updating set to show loading state
-    setUpdatingHabits((prev) => new Set(prev).add(habitId));
-
-    // Optimistic update: Update UI immediately
-    const optimisticRecords = { ...dailyRecords };
-    const recordIndex = optimisticRecords.records.findIndex(
-      (r) => r.habitId === habitId
-    );
-
-    if (recordIndex !== -1) {
-      const currentRecord = optimisticRecords.records[recordIndex];
-      const newCompleted = value >= currentRecord.goalValue;
-
-      // Update the record
-      optimisticRecords.records[recordIndex] = {
-        ...currentRecord,
-        value,
-        completed: newCompleted,
-        completedAt: newCompleted ? new Date().toISOString() : "",
-      };
-
-      // Recalculate stats
-      const completedHabits = optimisticRecords.records.filter(
-        (r) => r.completed
-      ).length;
-      const totalHabits = optimisticRecords.records.length;
-      const completionRate =
-        totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
-
-      optimisticRecords.stats = {
-        totalHabits,
-        completedHabits,
-        completionRate,
-      };
-
-      // Update state immediately for smooth UX
-      setDailyRecords(optimisticRecords);
-    }
-
-    try {
-      // Make API call in background
-      await completionsService.updateCompletionValue(
-        habitId,
-        formattedDate,
-        value
-      );
-
-      // Fetch updated habit data to get the latest analytics (streaks, counter)
-      const updatedHabit = await habitsService.getHabit(habitId);
-
-      // Update the record with fresh analytics data
-      if (updatedHabit && dailyRecords) {
-        const updatedRecords = { ...dailyRecords };
-        const recordIdx = updatedRecords.records.findIndex(
-          (r) => r.habitId === habitId
-        );
-        if (recordIdx !== -1) {
-          updatedRecords.records[recordIdx] = {
-            ...updatedRecords.records[recordIdx],
-            currentStreak: updatedHabit.currentStreak || 0,
-            bestStreak: updatedHabit.bestStreak || 0,
-            currentCounter: updatedHabit.currentCounter || 0,
-          };
-          setDailyRecords(updatedRecords);
-        }
-      }
-
-      toast.success("Habit value updated");
-    } catch (error) {
-      console.error("Error updating habit value:", error);
-      toast.error("Failed to update habit value");
-
-      // Revert optimistic update on error
-      await fetchDailyData(false);
-    } finally {
-      // Remove habit from updating set
-      setUpdatingHabits((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(habitId);
-        return newSet;
-      });
-    }
-  };
   const markAllComplete = async (tag: string) => {
     if (!dailyRecords) return;
 
@@ -475,7 +356,6 @@ const Daily: React.FC = () => {
           ...record,
           completed: true,
           completedAt: new Date().toISOString(),
-          value: record.goalType === "counter" ? record.goalValue : 1,
         };
       }
       return record;
@@ -505,36 +385,12 @@ const Daily: React.FC = () => {
         habitId: habit.habitId,
         date: formattedDate,
         completed: true,
-        value: habit.goalType === "counter" ? habit.goalValue : undefined,
       }));
 
       await completionsService.createCompletionsBatch(completionsToCreate);
 
-      // Fetch updated analytics for all affected habits
-      const habitIds = habitsToComplete.map((h) => h.habitId);
-      const updatedHabits = await Promise.all(
-        habitIds.map((id) => habitsService.getHabit(id))
-      );
-
-      // Update records with fresh analytics data
-      if (updatedHabits.length > 0 && dailyRecords) {
-        const updatedRecords = { ...dailyRecords };
-        updatedHabits.forEach((updatedHabit) => {
-          const recordIdx = updatedRecords.records.findIndex(
-            (r) => r.habitId === updatedHabit.id
-          );
-          if (recordIdx !== -1) {
-            updatedRecords.records[recordIdx] = {
-              ...updatedRecords.records[recordIdx],
-              currentStreak: updatedHabit.currentStreak || 0,
-              bestStreak: updatedHabit.bestStreak || 0,
-              currentCounter: updatedHabit.currentCounter || 0,
-            };
-          }
-        });
-        setDailyRecords(updatedRecords);
-      }
-
+      // Refresh from backend to avoid stale local state
+      await fetchDailyData(false);
       toast.success(`All ${tag} habits marked as complete`);
     } catch (error) {
       console.error("Error marking all habits complete:", error);
@@ -873,7 +729,6 @@ const Daily: React.FC = () => {
                     key={record.habitId}
                     record={record}
                     onToggleCompletion={toggleHabitCompletion}
-                    onValueUpdate={updateHabitValue}
                     isUpdating={updatingHabits.has(record.habitId)}
                   />
                 ))}
@@ -942,20 +797,6 @@ const HabitListItem: React.FC<HabitListItemProps> = ({
   onToggleCompletion,
   isUpdating,
 }) => {
-  const getProgressValue = () => {
-    if (record.goalType === "counter") {
-      return (record.value / record.goalValue) * 100;
-    }
-    return record.completed ? 100 : 0;
-  };
-
-  const getProgressDisplay = () => {
-    if (record.goalType === "counter") {
-      return `${record.value}/${record.goalValue}`;
-    }
-    return record.completed ? "مكتمل" : "غير مكتمل";
-  };
-
   const handleClick = () => {
     if (!isUpdating) {
       onToggleCompletion(record.habitId);
@@ -1016,23 +857,6 @@ const HabitListItem: React.FC<HabitListItemProps> = ({
               {record.habitTag}
             </Badge>
           </div>
-
-          {/* Progress bar for counter-type habits */}
-          {record.goalType === "counter" && (
-            <div className="mt-2 space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">التقدم</span>
-                <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {getProgressDisplay()}
-                </span>
-              </div>
-              <Progress
-                value={getProgressValue()}
-                variant={record.completed ? "success" : "default"}
-                className="h-2"
-              />
-            </div>
-          )}
         </div>
       </div>
 
@@ -1049,7 +873,7 @@ const HabitListItem: React.FC<HabitListItemProps> = ({
             </span>
           </div>
         )}
-        {!record.completed && record.goalType === "streak" && (
+        {!record.completed && (
           <div className="text-sm text-gray-500 dark:text-gray-400">
             الهدف: {record.goalValue} أيام
           </div>

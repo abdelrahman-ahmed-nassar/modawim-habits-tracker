@@ -29,7 +29,6 @@ import Button from "../components/ui/Button";
 import Card, { CardContent, CardHeader } from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import Progress from "../components/ui/Progress";
-import CounterInput from "../components/ui/CounterInput";
 import WeeklyAnalytics from "../components/features/WeeklyAnalytics";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
 import { getArabicDayName, getArabicMonthName } from "../utils/dateUtils";
@@ -192,9 +191,7 @@ interface Record {
   completedAt: string;
   habitName: string;
   habitTag: string;
-  goalType: string;
   goalValue: number;
-  value: number;
   currentStreak: number;
   bestStreak: number;
   currentCounter: number;
@@ -271,16 +268,12 @@ interface WeeklyRecordsApiResponse {
 interface HabitCardProps {
   record: Record;
   onToggleCompletion: (habitId: string, date: string) => void;
-  onUpdateCounter?: (habitId: string, date: string, value: number) => void;
-  isUpdating: boolean;
 }
 
 interface DayColumnProps {
   date: string;
   dayRecords: Record[];
   onToggleCompletion: (habitId: string, date: string) => void;
-  onUpdateCounter: (habitId: string, date: string, value: number) => void;
-  updatingRecords: Set<string>;
 }
 
 interface WeekStats {
@@ -302,30 +295,19 @@ interface WeekStats {
 const HabitCard: React.FC<HabitCardProps> = ({
   record,
   onToggleCompletion,
-  onUpdateCounter,
-  isUpdating,
 }) => {
   const getBgColor = () => {
-    if (
-      record.completed ||
-      (record.goalType === "counter" && record.value >= record.goalValue)
-    ) {
+    if (record.completed) {
       return "bg-gradient-to-r from-green-50 to-green-50/50 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800";
     }
     return "bg-white dark:bg-gray-800/90 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600";
   };
 
   const getProgressValue = () => {
-    if (record.goalType === "counter") {
-      return Math.min((record.value / record.goalValue) * 100, 100);
-    }
     return record.completed ? 100 : 0;
   };
 
   const getProgressDisplay = () => {
-    if (record.goalType === "counter") {
-      return `${record.value}/${record.goalValue}`;
-    }
     return record.completed ? "مكتمل" : "غير مكتمل";
   };
 
@@ -333,41 +315,22 @@ const HabitCard: React.FC<HabitCardProps> = ({
 
   return (
     <div
-      className={`rounded-xl border ${getBgColor()} p-3 transition-all duration-300 hover:shadow-lg hover:translate-y-[-2px] relative w-full snap-start cursor-pointer ${
-        record.goalType === "counter" ? "min-h-[160px]" : "min-h-[120px]"
-      }`}
-      onClick={() =>
-        record.goalType !== "counter" &&
-        onToggleCompletion(record.habitId, record.date)
-      }
+      className={`rounded-xl border ${getBgColor()} p-3 transition-all duration-300 hover:shadow-lg hover:translate-y-[-2px] relative w-full snap-start cursor-pointer min-h-[160px]`}
+      onClick={() => onToggleCompletion(record.habitId, record.date)}
     >
       <div className="flex flex-col justify-between h-full">
         {/* Header with name and badge */}
         <div className="flex items-center justify-between mb-3">
           <div
             className={`font-medium truncate transition-colors duration-200 ${
-              record.completed ||
-              (record.goalType === "counter" &&
-                record.value >= record.goalValue)
-                ? "text-green-700 dark:text-green-400"
-                : ""
+              record.completed ? "text-green-700 dark:text-green-400" : ""
             }`}
             title={record.habitName}
           >
             {record.habitName}
           </div>
           <Badge
-            variant={
-              record.goalType === "counter"
-                ? record.value >= record.goalValue
-                  ? "success"
-                  : record.value > 0
-                  ? "warning"
-                  : "default"
-                : record.completed
-                ? "success"
-                : "default"
-            }
+            variant={record.completed ? "success" : "default"}
             size="sm"
             className="bg-opacity-70 dark:bg-opacity-50"
           >
@@ -383,48 +346,26 @@ const HabitCard: React.FC<HabitCardProps> = ({
           </div>
           <Progress
             value={progressValue}
-            variant={
-              record.completed ||
-              (record.goalType === "counter" &&
-                record.value >= record.goalValue)
-                ? "success"
-                : "default"
-            }
+            variant={record.completed ? "success" : "default"}
             className="h-2"
           />
         </div>
 
-        {/* Counter or Checkbox */}
-        {record.goalType === "counter" ? (
-          <div className="mt-auto">
-            <div className="text-center">
-              <CounterInput
-                value={record.value}
-                goalValue={record.goalValue}
-                onValueChange={(value: number) =>
-                  onUpdateCounter?.(record.habitId, record.date, value)
-                }
-                disabled={isUpdating}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center mt-auto">
-            <div
-              className={`flex-shrink-0 w-6 h-6 rounded-lg ml-3 flex items-center justify-center transition-all duration-300
+        <div className="flex items-center mt-auto">
+          <div
+            className={`flex-shrink-0 w-6 h-6 rounded-lg ml-3 flex items-center justify-center transition-all duration-300
                 ${
                   record.completed
                     ? "bg-green-500"
                     : "border-2 border-gray-300 dark:border-gray-600"
                 }`}
-            >
-              {record.completed && <Check className="w-4 h-4 text-white" />}
-            </div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {record.completed ? "مكتملة" : "أكمل"}
-            </span>
+          >
+            {record.completed && <Check className="w-4 h-4 text-white" />}
           </div>
-        )}
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {record.completed ? "مكتملة" : "أكمل"}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -435,17 +376,13 @@ const DayColumn: React.FC<DayColumnProps> = ({
   date,
   dayRecords,
   onToggleCompletion,
-  onUpdateCounter,
-  updatingRecords,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Calculate completion stats
   const totalHabits = dayRecords.length;
   const completedHabits = dayRecords.filter(
-    (record: Record) =>
-      record.completed ||
-      (record.goalType === "counter" && record.value >= record.goalValue)
+    (record: Record) => record.completed
   ).length;
   const completionRate =
     totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
@@ -527,15 +464,12 @@ const DayColumn: React.FC<DayColumnProps> = ({
           {dayRecords.length > 0 ? (
             dayRecords.map((record: Record) => {
               const key = `${record.habitId}-${date}`;
-              const isUpdating = updatingRecords.has(key);
 
               return (
                 <HabitCard
                   key={key}
                   record={record}
                   onToggleCompletion={onToggleCompletion}
-                  onUpdateCounter={onUpdateCounter}
-                  isUpdating={isUpdating}
                 />
               );
             })
@@ -590,9 +524,6 @@ const Weekly: React.FC = () => {
     null
   );
   const [loading, setLoading] = useState(true);
-  const [updatingRecords, setUpdatingRecords] = useState<Set<string>>(
-    new Set()
-  );
   const [weekStats, setWeekStats] = useState<WeekStats | null>(null);
   const [lastWeekStats, setLastWeekStats] = useState<WeekStats | null>(null);
   const [weeklyAnalyticsData, setWeeklyAnalyticsData] =
@@ -689,9 +620,7 @@ const Weekly: React.FC = () => {
                   habitId: stat.habitId,
                   habitName: stat.habitName,
                   habitTag: habitDetails?.tag || "General",
-                  goalType: habitDetails?.goalType || "streak",
                   goalValue: habitDetails?.goalValue || 1,
-                  value: 0,
                   completed: false,
                   completedAt: "",
                   currentStreak: 0,
@@ -1040,31 +969,16 @@ const Weekly: React.FC = () => {
 
     if (recordIndex === -1) return;
 
-    // Create key for tracking updates
-    const key = `${habitId}-${date}`;
-
-    // Show loading indicator
-    setUpdatingRecords((prev) => new Set(prev).add(key));
-
     // Optimistic update
     const updatedRecords = { ...weeklyRecords };
     const currentRecord = updatedRecords.records[dayIndex].records[recordIndex];
     const newCompleted = !currentRecord.completed;
-    let newValue = 0;
-
-    // For counter-type habits, toggle between 0 and goal value
-    if (currentRecord.goalType === "counter") {
-      newValue = newCompleted ? currentRecord.goalValue : 0;
-    } else {
-      newValue = newCompleted ? 1 : 0;
-    }
 
     // Update the record
     updatedRecords.records[dayIndex].records[recordIndex] = {
       ...currentRecord,
       completed: newCompleted,
       completedAt: newCompleted ? new Date().toISOString() : "",
-      value: newValue,
     };
 
     // Recalculate stats for this day
@@ -1093,86 +1007,6 @@ const Weekly: React.FC = () => {
 
       // Revert optimistic update on error
       await fetchWeeklyData();
-    } finally {
-      // Remove item from updating set
-      setUpdatingRecords((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(key);
-        return newSet;
-      });
-    }
-  };
-
-  // Handle updating counter values
-  const handleUpdateCounter = async (
-    habitId: string,
-    date: string,
-    value: number
-  ) => {
-    if (!weeklyRecords) return;
-
-    const key = `${habitId}-${date}`;
-
-    // Find the record for this habit and date
-    const dayIndex = weeklyRecords.records.findIndex(
-      (day) => day.date === date
-    );
-    if (dayIndex === -1) return;
-
-    const recordIndex = weeklyRecords.records[dayIndex].records.findIndex(
-      (r) => r.habitId === habitId
-    );
-
-    if (recordIndex === -1) return;
-
-    // Show loading indicator
-    setUpdatingRecords((prev) => new Set(prev).add(key));
-
-    // Optimistic update
-    const updatedRecords = { ...weeklyRecords };
-    const currentRecord = updatedRecords.records[dayIndex].records[recordIndex];
-    const completed = value >= currentRecord.goalValue;
-
-    // Update the record
-    updatedRecords.records[dayIndex].records[recordIndex] = {
-      ...currentRecord,
-      completed,
-      completedAt: completed ? new Date().toISOString() : "",
-      value,
-    };
-
-    // Recalculate stats for this day
-    const dayRecords = updatedRecords.records[dayIndex].records;
-    const completedHabits = dayRecords.filter((r) => r.completed).length;
-    const totalHabits = dayRecords.length;
-    const completionRate =
-      totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
-
-    updatedRecords.records[dayIndex].stats = {
-      totalHabits,
-      completedHabits,
-      completionRate,
-    };
-
-    // Update state immediately
-    setWeeklyRecords(updatedRecords);
-
-    try {
-      // Make API call in background
-      await completionsService.updateCompletionValue(habitId, date, value);
-      toast.success("Counter updated successfully");
-    } catch (error) {
-      console.error("Error updating counter:", error);
-      toast.error("Failed to update counter");
-
-      // Revert optimistic update on error
-      await fetchWeeklyData();
-    } finally {
-      setUpdatingRecords((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(key);
-        return newSet;
-      });
     }
   };
 
@@ -1210,7 +1044,6 @@ const Weekly: React.FC = () => {
             date,
             completed: false,
             completedAt: "",
-            value: 0,
           })),
           stats: {
             totalHabits: templateRecords.length,
@@ -1591,8 +1424,6 @@ const Weekly: React.FC = () => {
                   date={dayRecord.date}
                   dayRecords={dayRecord.records}
                   onToggleCompletion={handleToggleCompletion}
-                  onUpdateCounter={handleUpdateCounter}
-                  updatingRecords={updatingRecords}
                 />
               ))}
             </div>

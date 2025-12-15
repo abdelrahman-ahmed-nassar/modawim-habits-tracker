@@ -14,9 +14,7 @@ interface Record {
   completedAt: string;
   habitName: string;
   habitTag: string;
-  goalType: string;
   goalValue: number;
-  value: number;
 }
 
 interface DailyStats {

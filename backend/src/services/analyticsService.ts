@@ -23,7 +23,6 @@ export interface HabitAnalytics {
   currentStreak: number;
   bestStreak: number;
   currentCounter: number;
-  goalType: "streak" | "counter";
   goalValue: number;
   isActive: boolean;
 }
@@ -125,7 +124,6 @@ export const calculateAllHabitsAnalytics = async (
         currentStreak: habit.currentStreak,
         bestStreak: habit.bestStreak,
         currentCounter: habit.currentCounter,
-        goalType: habit.goalType,
         goalValue: habit.goalValue,
         isActive: habit.isActive,
       };
@@ -240,7 +238,6 @@ export const calculateHabitAnalytics = async (
     currentStreak: habit.currentStreak,
     bestStreak: habit.bestStreak,
     currentCounter: habit.currentCounter,
-    goalType: habit.goalType,
     goalValue: habit.goalValue,
     isActive: habit.isActive,
   };

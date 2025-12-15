@@ -22,7 +22,6 @@ export const generateSampleHabits = (): Habit[] => {
       description: "على الأقل 30 دقيقة من النشاط البدني",
       tag: "صحة",
       repetition: "daily",
-      goalType: "streak",
       goalValue: 1,
       currentStreak: 3,
       bestStreak: 5,
@@ -37,7 +36,6 @@ export const generateSampleHabits = (): Habit[] => {
       description: "قراءة 30 صفحة على الأقل",
       tag: "تعلم",
       repetition: "daily",
-      goalType: "counter",
       goalValue: 30,
       currentStreak: 0,
       bestStreak: 7,
@@ -52,7 +50,6 @@ export const generateSampleHabits = (): Habit[] => {
       tag: "إنتاجية",
       repetition: "weekly",
       specificDays: [0], // Sunday
-      goalType: "streak",
       goalValue: 1,
       currentStreak: 2,
       bestStreak: 4,
@@ -67,7 +64,6 @@ export const generateSampleHabits = (): Habit[] => {
       description: "شرب 2 لتر من الماء على الأقل",
       tag: "صحة",
       repetition: "daily",
-      goalType: "counter",
       goalValue: 8, // 8 glasses
       currentStreak: 1,
       bestStreak: 12,
@@ -82,7 +78,6 @@ export const generateSampleHabits = (): Habit[] => {
       tag: "مالية",
       repetition: "monthly",
       specificDays: [1], // 1st day of month
-      goalType: "streak",
       goalValue: 1,
       currentStreak: 2,
       bestStreak: 3,
@@ -122,12 +117,6 @@ export const generateSampleCompletions = (
           habitId: habit.id,
           date: dateStr,
           completed,
-          value:
-            habit.goalType === "counter"
-              ? completed
-                ? Math.floor(Math.random() * habit.goalValue) + 1
-                : 0
-              : undefined,
           completedAt: new Date(date).toISOString(),
         });
       }

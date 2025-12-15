@@ -3,7 +3,6 @@ export interface CompletionRecord {
     habitId: string;
     date: string;
     completed: boolean;
-    value?: number;
     completedAt: string;
 }
 export type { CompletionRecord as default };

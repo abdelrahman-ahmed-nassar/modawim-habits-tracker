@@ -31,14 +31,7 @@ export const calculateSuccessRate = (
 
   // Count successful completions
   const successfulCompletions = completions.filter(
-    (c) =>
-      c.date >= startDate &&
-      c.date <= endDate &&
-      c.completed &&
-      (habit.goalType === "streak" ||
-        (habit.goalType === "counter" &&
-          c.value !== undefined &&
-          c.value >= habit.goalValue))
+    (c) => c.date >= startDate && c.date <= endDate && c.completed
   );
 
   return successfulCompletions.length / activeDates.length;
@@ -82,14 +75,7 @@ export const calculateDayOfWeekStats = (
 
       // Check if there's a successful completion for this date
       const completion = completions.find((c) => c.date === date);
-      if (
-        completion &&
-        completion.completed &&
-        (habit.goalType === "streak" ||
-          (habit.goalType === "counter" &&
-            completion.value !== undefined &&
-            completion.value >= habit.goalValue))
-      ) {
+      if (completion && completion.completed) {
         stats[dayOfWeek].completedDays++;
       }
     }
@@ -210,12 +196,7 @@ export const calculateStreakPeriods = (
   };
 
   // Helper to check if a completion is successful
-  const isSuccessful = (completion: CompletionRecord) =>
-    completion.completed &&
-    (habit.goalType === "streak" ||
-      (habit.goalType === "counter" &&
-        completion.value !== undefined &&
-        completion.value >= habit.goalValue));
+  const isSuccessful = (completion: CompletionRecord) => completion.completed;
 
   for (let i = 0; i < sortedCompletions.length; i++) {
     const completion = sortedCompletions[i];

@@ -42,6 +42,7 @@
     "@types/react-toastify": "^4.0.2",
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.17",
+    "baseline-browser-mapping": "^2.9.7",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",

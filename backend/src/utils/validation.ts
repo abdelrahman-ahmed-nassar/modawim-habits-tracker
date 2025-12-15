@@ -40,12 +40,6 @@ export const validateHabitCreate = (
     errors.push({ field: "repetition", message: "Invalid repetition type" });
   }
 
-  if (!habitData.goalType) {
-    errors.push({ field: "goalType", message: "Goal type is required" });
-  } else if (!["counter", "streak"].includes(habitData.goalType)) {
-    errors.push({ field: "goalType", message: "Invalid goal type" });
-  }
-
   if (habitData.goalValue === undefined || habitData.goalValue < 1) {
     errors.push({
       field: "goalValue",
@@ -140,10 +134,6 @@ export const validateCompletion = (
       field: "completed",
       message: "Completed status is required",
     });
-  }
-
-  if (completionData.value !== undefined && isNaN(completionData.value)) {
-    errors.push({ field: "value", message: "Value must be a number" });
   }
 
   return errors;

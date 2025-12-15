@@ -367,47 +367,25 @@ export const updateHabitStreaks = async (habitId: string): Promise<void> => {
 
   // Sort by date (oldest first for streak calculations)
   completions.sort((a, b) => a.date.localeCompare(b.date));
-  // Calculate currentCounter from today's completion (if exists)
-  const today = new Date().toISOString().split("T")[0];
-  const todayCompletion = completions.find((c) => c.date === today);
-  if (habit.goalType === "counter") {
-    // For counter-type habits, currentCounter is the sum of all completion values
-    currentCounter = completions.reduce(
-      (sum, completion) => sum + (completion.value || 0),
-      0
-    );
+  // For streak-type habits, currentCounter tracks total completions (each completion = 1)
+  currentCounter = completions.filter((c) => c.completed).length;
 
-    // Calculate current streak (consecutive days where value >= goalValue)
-    currentStreak = calculateCounterStreak(completions, habit.goalValue);
+  const dailyCompletions = getDailyCompletionStatus(habit, completions);
 
-    // Calculate all historical streaks for counter-type habits
-    const allCounterStreaks = calculateAllCounterStreaks(
-      completions,
-      habit.goalValue
-    );
-    // Set bestStreak to the maximum of all historical streaks
-    bestStreak = Math.max(...allCounterStreaks, 0, currentStreak);
-  } else {
-    // For streak-type habits, currentCounter tracks total completions (each completion = 1)
-    currentCounter = completions.filter((c) => c.completed).length;
+  // Calculate current streak - counting back from today or the last record
+  currentStreak = calculateCurrentStreak(
+    dailyCompletions,
+    habit.repetition,
+    habit.specificDays
+  );
 
-    const dailyCompletions = getDailyCompletionStatus(habit, completions);
-
-    // Calculate current streak - counting back from today or the last record
-    currentStreak = calculateCurrentStreak(
-      dailyCompletions,
-      habit.repetition,
-      habit.specificDays
-    );
-
-    // Calculate best streak
-    const allStreaks = calculateAllStreaks(
-      dailyCompletions,
-      habit.repetition,
-      habit.specificDays
-    );
-    bestStreak = Math.max(...allStreaks, 0, habit.bestStreak); // Include existing bestStreak
-  }
+  // Calculate best streak
+  const allStreaks = calculateAllStreaks(
+    dailyCompletions,
+    habit.repetition,
+    habit.specificDays
+  );
+  bestStreak = Math.max(...allStreaks, 0, habit.bestStreak); // Include existing bestStreak
 
   // Update the habit with new streak values and currentCounter
   await updateHabit(habitId, { currentStreak, bestStreak, currentCounter });
@@ -426,18 +404,7 @@ const getDailyCompletionStatus = (
   const statusMap = new Map<string, boolean>();
 
   completions.forEach((completion) => {
-    // For counter-type habits, check if the value meets the goal
-    if (habit.goalType === "counter") {
-      statusMap.set(
-        completion.date,
-        completion.completed &&
-          (completion.value !== undefined
-            ? completion.value >= habit.goalValue
-            : false)
-      );
-    } else {
-      statusMap.set(completion.date, completion.completed);
-    }
+    statusMap.set(completion.date, completion.completed);
   });
 
   return statusMap;
@@ -566,135 +533,6 @@ const calculateAllStreaks = (
         (repetition === "weekly" && dayDiff > 7) ||
         (repetition === "monthly" && dayDiff > 31)
       ) {
-        if (currentStreak > 0) {
-          streaks.push(currentStreak);
-          currentStreak = 0;
-        }
-      }
-    }
-  }
-
-  // Add the last streak if there is one
-  if (currentStreak > 0) {
-    streaks.push(currentStreak);
-  }
-
-  return streaks;
-};
-
-/**
- * Calculate streak for counter-type habits
- * @param completions Completion records
- * @param goalValue The goal value to meet or exceed
- * @returns Current streak count
- */
-const calculateCounterStreak = (
-  completions: CompletionRecord[],
-  goalValue: number
-): number => {
-  // Sort by date (most recent first)
-  const sortedCompletions = [...completions].sort((a, b) =>
-    b.date.localeCompare(a.date)
-  );
-
-  if (sortedCompletions.length === 0) return 0;
-
-  // Get today's date for comparison
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Get the most recent completion date
-  const mostRecentDate = new Date(sortedCompletions[0].date);
-  mostRecentDate.setHours(0, 0, 0, 0);
-
-  // Calculate days since most recent completion
-  const daysSinceLastCompletion = Math.floor(
-    (today.getTime() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  // For counter habits, we need completion from yesterday or today to have a current streak
-  // If the last completion is more than 1 day old, the streak is broken
-  if (daysSinceLastCompletion > 1) return 0;
-
-  let streak = 0;
-
-  // Go backwards from the most recent date
-  for (let i = 0; i < sortedCompletions.length; i++) {
-    const completion = sortedCompletions[i];
-
-    // If there's a gap in consecutive dates, break
-    if (i > 0) {
-      const currentDate = new Date(completion.date);
-      const prevDate = new Date(sortedCompletions[i - 1].date);
-      const dayDiff = Math.floor(
-        (prevDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (dayDiff > 1) break;
-    }
-
-    // Check if the goal was met
-    if (
-      completion.completed &&
-      (completion.value !== undefined ? completion.value >= goalValue : false)
-    ) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-};
-
-/**
- * Calculate all historical streaks for counter-type habits
- * @param completions Completion records
- * @param goalValue The goal value to meet or exceed
- * @returns Array of all streak lengths in history
- */
-const calculateAllCounterStreaks = (
-  completions: CompletionRecord[],
-  goalValue: number
-): number[] => {
-  // Sort by date (oldest first)
-  const sortedCompletions = [...completions].sort((a, b) =>
-    a.date.localeCompare(b.date)
-  );
-
-  if (sortedCompletions.length === 0) return [];
-
-  const streaks: number[] = [];
-  let currentStreak = 0;
-
-  for (let i = 0; i < sortedCompletions.length; i++) {
-    const completion = sortedCompletions[i];
-
-    // Check if the goal was met
-    const goalMet =
-      completion.completed &&
-      (completion.value !== undefined ? completion.value >= goalValue : false);
-
-    if (goalMet) {
-      currentStreak++;
-    } else {
-      // Goal not met, end current streak if it exists
-      if (currentStreak > 0) {
-        streaks.push(currentStreak);
-        currentStreak = 0;
-      }
-    }
-
-    // Check if there's a gap to the next date (more than 1 day)
-    if (i < sortedCompletions.length - 1) {
-      const currentDate = new Date(completion.date);
-      const nextDate = new Date(sortedCompletions[i + 1].date);
-      const dayDiff = Math.floor(
-        (nextDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      // If there's a gap of more than 1 day, end the streak
-      if (dayDiff > 1) {
         if (currentStreak > 0) {
           streaks.push(currentStreak);
           currentStreak = 0;
@@ -981,7 +819,6 @@ export const calculateHabitAnalytics = async (
   const completionHistory = sortedCompletions.map((completion) => ({
     date: completion.date,
     completed: completion.completed,
-    value: completion.value,
   }));
 
   return {

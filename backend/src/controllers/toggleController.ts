@@ -42,17 +42,7 @@ export const toggleHabitCompletion = asyncHandler(
       habitId,
       date,
       completed: existingCompletion ? !existingCompletion.completed : true,
-      value: existingCompletion?.value,
     };
-
-    // For counter type habits, ensure value is preserved
-    if (
-      habit.goalType === "counter" &&
-      completionData.completed &&
-      !completionData.value
-    ) {
-      throw new AppError("Value is required for counter-type habits", 400);
-    }
 
     // Save completion
     const completion = await dataService.createCompletion(completionData);

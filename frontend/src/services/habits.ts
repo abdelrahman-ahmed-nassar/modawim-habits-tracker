@@ -9,7 +9,6 @@ interface CreateHabitRequest {
   repetition: "daily" | "weekly" | "monthly";
   specificDays?: number[];
   tag: string;
-  goalType: "streak" | "counter";
   goalValue: number;
   motivationNote?: string;
   isActive?: boolean;

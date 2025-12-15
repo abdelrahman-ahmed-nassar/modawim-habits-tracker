@@ -7,7 +7,6 @@ interface Completion {
   habitId: string;
   date: string;
   completed: boolean;
-  value: number;
   completedAt: string;
 }
 
@@ -53,19 +52,16 @@ class CompletionsService {
    * @param habitId - The ID of the habit
    * @param date - The date in ISO format
    * @param completed - Optional completion status (defaults to true)
-   * @param value - Optional value for counter-type habits
    */
   async createCompletion(
     habitId: string,
     date: string,
-    completed?: boolean,
-    value?: number
+    completed?: boolean
   ): Promise<Completion> {
     const requestData: {
       habitId: string;
       date: string;
       completed?: boolean;
-      value?: number;
     } = {
       habitId,
       date,
@@ -73,10 +69,6 @@ class CompletionsService {
 
     if (completed !== undefined) {
       requestData.completed = completed;
-    }
-
-    if (value !== undefined) {
-      requestData.value = value;
     }
 
     const response = await axios.post(
@@ -95,7 +87,6 @@ class CompletionsService {
       habitId: string;
       date: string;
       completed?: boolean;
-      value?: number;
     }>
   ): Promise<Completion[]> {
     const response = await axios.post(`${API_BASE_URL}/completions/batch`, {
@@ -148,35 +139,6 @@ class CompletionsService {
    */
   async deleteHabitCompletion(habitId: string, date: string): Promise<void> {
     await axios.delete(`${API_BASE_URL}/habits/${habitId}/complete/${date}`);
-  }
-  /**
-   * Update a completion value for counter-type habits
-   * @param habitId - The ID of the habit
-   * @param date - The date in ISO format
-   * @param value - The new value for the completion
-   */
-  async updateCompletionValue(
-    habitId: string,
-    date: string,
-    value: number
-  ): Promise<Completion> {
-    // First, find the completion record for this habit and date
-    const dailyCompletions = await this.getDailyCompletions(date);
-    const completion = dailyCompletions.find((c) => c.habitId === habitId);
-
-    if (!completion) {
-      // If no completion exists, create one with the value
-      return await this.createCompletion(habitId, date, true, value);
-    } else {
-      // Update existing completion
-      const response = await axios.put(
-        `${API_BASE_URL}/completions/${completion.id}`,
-        {
-          value,
-        }
-      );
-      return response.data.data;
-    }
   }
 }
 

@@ -43,7 +43,6 @@ export const getDailyRecords = asyncHandler(
           ...completion,
           habitName: habit ? habit.name : "Unknown Habit",
           habitTag: habit ? habit.tag : "",
-          goalType: habit ? habit.goalType : "streak",
           goalValue: habit ? habit.goalValue : 0,
         };
       })
@@ -133,21 +132,15 @@ export const getWeeklyRecords = asyncHandler(
             if (!isRelevant) return null;
 
             const isCompleted = completion ? completion.completed : false;
-            const value = completion ? completion.value ?? 0 : 0;
 
             return {
               id: completion?.id || `temp-${date}-${habit.id}`,
               habitId: habit.id,
               date,
-              completed:
-                habit.goalType === "counter"
-                  ? value >= (habit.goalValue ?? 0)
-                  : isCompleted,
-              value,
+              completed: isCompleted,
               completedAt: completion?.completedAt || "",
               habitName: habit.name,
               habitTag: habit.tag,
-              goalType: habit.goalType,
               goalValue: habit.goalValue,
               currentStreak: habit.currentStreak || 0,
               bestStreak: habit.bestStreak || 0,
@@ -201,15 +194,7 @@ export const getWeeklyRecords = asyncHandler(
           (c) => c.habitId === habit.id
         );
 
-        // For counter habits, check if value meets goal
-        const completedCompletions = habitCompletions.filter((c) => {
-          if (habit.goalType === "counter") {
-            const value = c.value ?? 0;
-            const goalValue = habit.goalValue ?? 0;
-            return value >= goalValue;
-          }
-          return c.completed;
-        });
+        const completedCompletions = habitCompletions.filter((c) => c.completed);
 
         // Calculate how many days this habit should have been active
         const activeDates = dateRange.filter((date) =>
@@ -219,7 +204,6 @@ export const getWeeklyRecords = asyncHandler(
         return {
           habitId: habit.id,
           habitName: habit.name,
-          goalType: habit.goalType,
           goalValue: habit.goalValue,
           successRate:
             activeDates.length > 0

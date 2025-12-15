@@ -8,7 +8,6 @@ export interface HabitAnalytics {
     completionHistory: Array<{
         date: string;
         completed: boolean;
-        value?: number;
     }>;
     bestDayOfWeek?: number;
     worstDayOfWeek?: number;
@@ -54,7 +53,6 @@ export interface DailyAnalytics {
         habitId: string;
         habitName: string;
         completed: boolean;
-        value: number;
     }>;
 }
 export interface WeeklyAnalytics {

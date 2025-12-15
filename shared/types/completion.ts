@@ -3,7 +3,6 @@ export interface CompletionRecord {
   habitId: string;
   date: string; // YYYY-MM-DD format
   completed: boolean;
-  value?: number; // for counter-type goals
   completedAt: string;
 }
 

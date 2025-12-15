@@ -5,7 +5,7 @@ export interface Habit {
     tag: string;
     repetition: "daily" | "weekly" | "monthly";
     specificDays?: number[];
-    goalType: "counter" | "streak";
+    goalType?: "streak";
     goalValue: number;
     currentStreak: number;
     bestStreak: number;

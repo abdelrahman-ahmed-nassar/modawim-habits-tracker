@@ -4,7 +4,6 @@ export interface CreateHabitDto {
     tag: string;
     repetition: "daily" | "weekly" | "monthly";
     specificDays?: number[];
-    goalType: "counter" | "streak";
     goalValue: number;
     motivationNote?: string;
 }
