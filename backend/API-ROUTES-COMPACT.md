@@ -72,12 +72,7 @@ Base URL: `http://localhost:5002/api`
 - `POST /options/productivity-levels` - Add a productivity level
 - `DELETE /options/productivity-levels/:level` - Remove a productivity level
 
-## 8. Backup Management
-
-- `POST /backup` - Create a backup
-- `POST /backup/restore` - Restore from a backup
-
-## 9. Tags Management
+## 8. Tags Management
 
 - `GET /tags` - Get all tags
 - `GET /tags/:id` - Get a single tag
@@ -85,10 +80,17 @@ Base URL: `http://localhost:5002/api`
 - `PUT /tags/:id` - Update a tag
 - `DELETE /tags/:id` - Delete a tag
 
-## 10. Note Templates Management
+## 9. Note Templates Management
 
 - `GET /templates` - Get all templates
 - `GET /templates/:id` - Get a template by ID
 - `POST /templates` - Create a template
 - `PUT /templates/:id` - Update a template
 - `DELETE /templates/:id` - Delete a template
+
+## 10. Counters Management
+
+- `GET /counters` - Get all counters
+- `POST /counters` - Create a counter
+- `PUT /counters/:id` - Update a counter
+- `DELETE /counters/:id` - Delete a counter

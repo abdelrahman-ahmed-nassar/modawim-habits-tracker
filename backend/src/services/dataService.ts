@@ -7,15 +7,13 @@ import {
   HabitAnalytics,
   NoteTemplate,
 } from "@shared/types";
-import { Settings, BackupData } from "../types/models";
-import { getTodayDateString, formatDateToString } from "../utils/dateUtils";
+import { Settings } from "../types/models";
 
 // File names
 const HABITS_FILE = "habits.json";
 const COMPLETIONS_FILE = "completions.json";
 const NOTES_FILE = "notes.json";
 const SETTINGS_FILE = "settings.json";
-const BACKUP_FOLDER = "backups";
 const NOTES_TEMPLATES_FILE = "notes_templates.json";
 const COUNTERS_FILE = "counters.json";
 const TAGS_FILE = "tags.json";
@@ -31,9 +29,6 @@ const DEFAULT_SETTINGS: Settings = {
   },
   reminderEnabled: true,
   reminderTime: "20:00",
-  backupEnabled: true,
-  backupFrequency: "weekly",
-  lastBackupDate: new Date().toISOString(),
 };
 
 /**
@@ -695,45 +690,6 @@ export const resetAllData = async (): Promise<void> => {
 };
 
 /**
- * Create a backup of all data
- * @returns The backup data
- */
-export const createBackup = async (): Promise<BackupData> => {
-  const habits = await getHabits();
-  const completions = await getCompletions();
-  const notes = await getNotes();
-  const settings = await getSettings();
-
-  const backupData: BackupData = {
-    habits,
-    completions,
-    notes,
-    settings,
-    timestamp: new Date().toISOString(),
-  };
-
-  const backupFileName = `backup-${formatDateToString(new Date())}.json`;
-  await ensureFileExists(`${BACKUP_FOLDER}/${backupFileName}`, backupData);
-
-  await updateSettings({ lastBackupDate: getTodayDateString() });
-
-  return backupData;
-};
-
-/**
- * Restore data from a backup
- * @param backupData The backup data to restore
- */
-export const restoreFromBackup = async (
-  backupData: BackupData
-): Promise<void> => {
-  await writeData(HABITS_FILE, backupData.habits);
-  await writeData(COMPLETIONS_FILE, backupData.completions);
-  await writeData(NOTES_FILE, backupData.notes);
-  await writeData(SETTINGS_FILE, backupData.settings);
-};
-
-/**
  * Calculate analytics for a habit
  * @param habitId The habit ID to calculate analytics for
  * @returns Analytics for the habit
@@ -1056,8 +1012,6 @@ export const dataService = {
   getSettings,
   updateSettings,
   resetAllData,
-  createBackup,
-  restoreFromBackup,
   calculateHabitAnalytics,
   replaceAllCompletions,
   updateHabitStreaks,

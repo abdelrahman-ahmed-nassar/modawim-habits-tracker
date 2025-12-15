@@ -17,14 +17,6 @@ export interface CompletionRecordWithDetails extends CompletionRecord {
   streak: number;
 }
 
-export interface BackupData {
-  habits: Habit[];
-  completions: CompletionRecord[];
-  notes: DailyNote[];
-  settings: Settings;
-  timestamp: string;
-}
-
 export interface Settings {
   userId: string;
   theme: "light" | "dark" | "system";
@@ -35,9 +27,6 @@ export interface Settings {
   };
   reminderEnabled: boolean;
   reminderTime: string;
-  backupEnabled: boolean;
-  backupFrequency: "daily" | "weekly" | "monthly";
-  lastBackupDate: string;
 }
 
 export interface ValidationError {

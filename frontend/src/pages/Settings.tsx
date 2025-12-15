@@ -5,7 +5,6 @@ import {
   MessageSquare,
   Zap,
   FileText,
-  Database,
   Calculator,
   Trash2,
 } from "lucide-react";
@@ -37,7 +36,6 @@ const Settings: React.FC = () => {
       ? tabParam
       : "habits"
   );
-  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isResettingData, setIsResettingData] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const isLoading = false;
@@ -52,25 +50,6 @@ const Settings: React.FC = () => {
     // Clear any existing toasts when switching tabs to prevent stale messages
     toast.dismiss();
     setActiveTab(newTab);
-  };
-
-  const handleCreateBackup = async () => {
-    try {
-      setIsCreatingBackup(true);
-      const response = await axios.post("http://localhost:5002/api/backup");
-      if (response.data.success) {
-        toast.success("تم إنشاء النسخة الاحتياطية بنجاح!");
-      } else {
-        toast.error("فشل إنشاء النسخة الاحتياطية");
-      }
-    } catch (error) {
-      console.error("Error creating backup:", error);
-      toast.error(
-        "فشل إنشاء النسخة الاحتياطية. تحقق من وحدة التحكم للحصول على التفاصيل."
-      );
-    } finally {
-      setIsCreatingBackup(false);
-    }
   };
 
   const handleResetData = async () => {
@@ -204,17 +183,6 @@ const Settings: React.FC = () => {
           <h2 className="text-xl font-semibold mb-4">إجراءات النظام</h2>
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={handleCreateBackup}
-              disabled={isCreatingBackup}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Database className="w-4 h-4 ml-2" />
-              {isCreatingBackup
-                ? "جارٍ إنشاء النسخة الاحتياطية..."
-                : "إنشاء نسخة احتياطية"}
-            </button>
-
-            <button
               onClick={() => setShowResetConfirmation(true)}
               disabled={isResettingData}
               className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -239,9 +207,7 @@ const Settings: React.FC = () => {
 • جميع اليوميات
 • جميع العدادات
 • جميع الوسوم
-
-⚠️ هذا الإجراء لا يمكن التراجع عنه!
-تأكد من إنشاء نسخة احتياطية قبل المتابعة.`}
+⚠️ هذا الإجراء لا يمكن التراجع عنه!`}
           confirmText="نعم، احذف جميع البيانات"
           cancelText="إلغاء"
           isDangerous={true}

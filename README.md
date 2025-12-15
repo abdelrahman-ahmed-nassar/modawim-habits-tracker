@@ -13,7 +13,6 @@ A local desktop application for tracking personal habits and analyzing your prog
 - 🌙 Dark mode support
 - 🔒 Complete privacy - all data stored locally
 - 🎨 Beautiful Arabic-first UI with Cairo font
-- 💾 Automatic backups
 
 ## 🚀 Quick Start for Users
 
@@ -168,11 +167,10 @@ modawim-habits-tracker/
 - `GET /api/analytics` - Get habit analytics
 - `GET /api/analytics/notes` - Get journal analytics
 
-### Settings & Backup
+### Settings
 
 - `GET /api/settings` - Get app settings
 - `PUT /api/settings` - Update settings
-- `POST /api/backup` - Create data backup
 
 See `backend/API-ROUTES.md` for complete documentation.
 
@@ -188,17 +186,8 @@ backend/data/
 ├── moods.json           # Mood options
 ├── productivity_levels.json
 ├── tags.json
-├── settings.json
-└── backups/             # Automatic backups
+└── settings.json
 ```
-
-### Backup System
-
-Automatic backups are created based on settings:
-
-- Daily, weekly, or monthly backups
-- Manual backup via API: `POST /api/backup`
-- Backups stored in `data/backups/`
 
 ## 🌐 Landing Page
 

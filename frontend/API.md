@@ -1233,51 +1233,6 @@ DELETE /options/productivity-levels/:level
 }
 ```
 
-### 9. Backup Management (`/backup`)
-
-#### Create Backup
-
-```http
-POST /backup
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "backupId": "string",
-    "createdAt": "string (ISO date)",
-    "size": number
-  },
-  "message": "Backup created successfully"
-}
-```
-
-#### Restore from Backup
-
-```http
-POST /backup/restore
-```
-
-**Request Body:**
-
-```json
-{
-  "backupId": "string"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Backup restored successfully"
-}
-```
-
 ### 10. Tags Management (`/tags`)
 
 #### Get All Tags

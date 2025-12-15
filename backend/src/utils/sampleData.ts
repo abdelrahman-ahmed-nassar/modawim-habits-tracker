@@ -205,9 +205,6 @@ export const generateDefaultSettings = (): Settings => {
     },
     reminderEnabled: true,
     reminderTime: "20:00",
-    backupEnabled: true,
-    backupFrequency: "weekly",
-    lastBackupDate: getDateDaysAgo(7),
   };
 };
 

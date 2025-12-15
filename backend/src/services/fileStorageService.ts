@@ -26,8 +26,6 @@ if (isCompiledCode) {
   console.log(`Running in dev mode. __dirname: ${__dirname}`);
 }
 
-const backupDir = path.join(dataDir, "backups");
-
 console.log(`Data directory: ${dataDir}`);
 console.log(`isCompiledCode: ${isCompiledCode}`);
 
@@ -40,12 +38,6 @@ export const initializeStorage = async (): Promise<void> => {
     if (!(await existsAsync(dataDir))) {
       await mkdirAsync(dataDir, { recursive: true });
       console.log(`Created data directory: ${dataDir}`);
-    }
-
-    // Ensure backups directory exists
-    if (!(await existsAsync(backupDir))) {
-      await mkdirAsync(backupDir, { recursive: true });
-      console.log(`Created backups directory: ${backupDir}`);
     }
   } catch (error) {
     console.error("Error initializing storage directories:", error);

@@ -1305,9 +1305,6 @@ curl http://localhost:5002/api/settings
     "theme": "dark",
     "reminderEnabled": true,
     "reminderTime": "09:00",
-    "backupEnabled": true,
-    "backupFrequency": "daily",
-    "lastBackupDate": "2025-05-25"
   }
 }
 ```
@@ -1325,8 +1322,6 @@ PUT /api/settings
   "theme": "string",
   "reminderEnabled": boolean,
   "reminderTime": "HH:MM",
-  "backupEnabled": boolean,
-  "backupFrequency": "string"
 }
 ```
 
@@ -1340,9 +1335,6 @@ PUT /api/settings
     "theme": "string",
     "reminderEnabled": boolean,
     "reminderTime": "HH:MM",
-    "backupEnabled": boolean,
-    "backupFrequency": "string",
-    "lastBackupDate": "YYYY-MM-DD"
   },
   "message": "Settings updated successfully"
 }
@@ -1541,63 +1533,6 @@ DELETE /api/options/productivity-levels/:level
 }
 ```
 
-## 8. Backup Management (`/backup`)
-
-### Create Backup
-
-```
-POST /api/backup
-```
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:5002/api/backup
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Backup created successfully",
-  "data": {
-    "timestamp": "2025-05-29T15:08:08.405Z",
-    "habits": 22,
-    "completions": 73,
-    "notes": 3,
-    "backupPath": "data/backups/backup-2025-05-29.json"
-  }
-}
-```
-
-### Restore from Backup
-
-```
-POST /api/backup/restore
-```
-
-**Request Body:**
-
-```json
-{
-  "backupFile": "string" // Path to backup file
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Backup restored successfully",
-  "data": {
-    "habits": number,
-    "completions": number,
-    "notes": number
-  }
-}
-```
 
 ## 9. Tags Management (`/tags`)
 

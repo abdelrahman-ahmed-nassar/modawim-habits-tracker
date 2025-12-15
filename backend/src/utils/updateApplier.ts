@@ -37,7 +37,6 @@ export function applyPendingUpdate(): boolean {
 
     // Get current executable path
     const currentExecutable = process.execPath;
-    const currentDir = path.dirname(currentExecutable);
 
     // On Windows, we need to use a batch script to replace the running executable
     if (process.platform === "win32") {
@@ -53,13 +52,6 @@ export function applyPendingUpdate(): boolean {
       return true;
     } else {
       // On Unix systems (macOS, Linux), we can replace the file directly
-      // First, backup the current executable
-      const backupPath = path.join(currentDir, `${executableName}.backup`);
-      if (fs.existsSync(backupPath)) {
-        fs.unlinkSync(backupPath);
-      }
-      fs.copyFileSync(currentExecutable, backupPath);
-
       // Replace with new executable
       fs.copyFileSync(newExecutablePath, currentExecutable);
 
@@ -94,9 +86,6 @@ function createWindowsUpdateScript(
   const script = `@echo off
 echo Applying update...
 timeout /t 2 /nobreak > nul
-
-REM Backup current executable
-copy /Y "${currentExecutable}" "${currentExecutable}.backup"
 
 REM Replace with new version
 copy /Y "${newExecutablePath}" "${currentExecutable}"

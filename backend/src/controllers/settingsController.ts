@@ -52,16 +52,6 @@ export const updateSettings = asyncHandler(
     }
 
     if (
-      settingsData.backupFrequency &&
-      !["daily", "weekly", "monthly"].includes(settingsData.backupFrequency)
-    ) {
-      throw new AppError(
-        "Invalid backup frequency. Must be 'daily', 'weekly', or 'monthly'",
-        400
-      );
-    }
-
-    if (
       settingsData.notifications?.reminderTime &&
       !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(
         settingsData.notifications.reminderTime
