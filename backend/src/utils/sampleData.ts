@@ -217,11 +217,22 @@ export const loadSampleData = async (): Promise<void> => {
 
     // Generate habits
     const habits = generateSampleHabits();
-    await writeData("habits.json", habits);
 
-    // Generate completions
+    // Generate completions and embed into habits.completedDays
     const completions = generateSampleCompletions(habits);
-    await writeData("completions.json", completions);
+    const byHabit = new Map<string, Set<number>>();
+    habits.forEach((h) => byHabit.set(h.id, new Set<number>()));
+    completions.forEach((c) => {
+      if (!c.completed) return;
+      const set = byHabit.get(c.habitId);
+      if (!set) return;
+      set.add(parseInt(c.date.replace(/-/g, ""), 10));
+    });
+    const hydratedHabits = habits.map((h) => ({
+      ...h,
+      completedDays: Array.from(byHabit.get(h.id) || []),
+    }));
+    await writeData("habits.json", hydratedHabits);
 
     // Generate notes
     const notes = generateSampleNotes();

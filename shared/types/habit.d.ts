@@ -12,5 +12,6 @@ export interface Habit {
   createdAt: string;
   motivationNote?: string;
   isActive: boolean;
+    completedDays?: number[];
 }
 export type { Habit as default };

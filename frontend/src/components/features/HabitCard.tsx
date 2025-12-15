@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Target, Flame, TrendingUp } from "lucide-react";
+import { Target, Flame, TrendingUp } from "lucide-react";
 import Card, { CardContent, CardHeader } from "../ui/Card";
 import Badge from "../ui/Badge";
 import Button from "../ui/Button";
@@ -112,19 +112,6 @@ const HabitCard: React.FC<HabitCardProps> = ({
             الهدف: {record.goalValue} أيام
           </span>{" "}
         </div>{" "}
-        {/* Completion Controls */}
-        {record.completed && (
-          <div className="text-center">
-            <Badge variant="success" size="sm">
-              تم إكمال الهدف! 🎉
-            </Badge>
-          </div>
-        )}
-        {record.completed && record.completedAt && (
-          <div className="text-xs text-center text-gray-500 dark:text-gray-400">
-            تم الإكمال في {new Date(record.completedAt).toLocaleTimeString()}
-          </div>
-        )}
         <Button
           onClick={() => onToggleCompletion(record.habitId)}
           variant={record.completed ? "success" : "primary"}
@@ -140,8 +127,7 @@ const HabitCard: React.FC<HabitCardProps> = ({
               </>
             ) : record.completed ? (
               <>
-                <Check className="w-4 h-4" />
-                <span>مكتمل</span>
+                <span>مكتمل 🎉</span>
               </>
             ) : (
               <>

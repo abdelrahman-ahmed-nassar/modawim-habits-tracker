@@ -12,7 +12,6 @@ import recordsRoutes from "./routes/recordsRoutes";
 import completionsRoutes from "./routes/completionsRoutes";
 import settingsRoutes from "./routes/settingsRoutes";
 import optionsRoutes from "./routes/optionsRoutes";
-import tagRoutes from "./routes/tagRoutes";
 import templateRoutes from "./routes/templateRoutes";
 import counterRoutes from "./routes/counterRoutes";
 import { errorHandler } from "./middleware/errorHandler";
@@ -121,7 +120,6 @@ app.use("/api/records", recordsRoutes);
 app.use("/api/completions", completionsRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/options", optionsRoutes);
-app.use("/api/tags", tagRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/counters", counterRoutes);
 

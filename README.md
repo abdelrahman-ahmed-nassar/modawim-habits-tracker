@@ -181,7 +181,6 @@ All data is stored locally in JSON files:
 ```
 backend/data/
 ├── habits.json          # Habit definitions
-├── completions.json     # Completion records
 ├── notes.json           # Journal entries
 ├── moods.json           # Mood options
 ├── productivity_levels.json

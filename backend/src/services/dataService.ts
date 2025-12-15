@@ -11,12 +11,10 @@ import { Settings } from "../types/models";
 
 // File names
 const HABITS_FILE = "habits.json";
-const COMPLETIONS_FILE = "completions.json";
 const NOTES_FILE = "notes.json";
 const SETTINGS_FILE = "settings.json";
 const NOTES_TEMPLATES_FILE = "notes_templates.json";
 const COUNTERS_FILE = "counters.json";
-const TAGS_FILE = "tags.json";
 
 // Default settings
 const DEFAULT_SETTINGS: Settings = {
@@ -31,16 +29,44 @@ const DEFAULT_SETTINGS: Settings = {
   reminderTime: "20:00",
 };
 
+// Date helpers for YYYY-MM-DD <-> YYYYMMDD integer conversion (UTC-based)
+const dateStrToInt = (dateStr: string): number =>
+  parseInt(dateStr.replace(/-/g, ""), 10);
+
+const dateIntToStr = (dateInt: number): string => {
+  const padded = dateInt.toString().padStart(8, "0");
+  const year = padded.slice(0, 4);
+  const month = padded.slice(4, 6);
+  const day = padded.slice(6, 8);
+  return `${year}-${month}-${day}`;
+};
+
+const buildCompletionId = (habitId: string, dateInt: number): string =>
+  `${habitId}-${dateInt}`;
+
+const completionFromDay = (
+  habitId: string,
+  dateInt: number,
+  completed: boolean
+): CompletionRecord => {
+  const dateStr = dateIntToStr(dateInt);
+  return {
+    id: buildCompletionId(habitId, dateInt),
+    habitId,
+    date: dateStr,
+    completed,
+    completedAt: `${dateStr}T00:00:00.000Z`,
+  };
+};
+
 /**
  * Initialize the data files if they don't exist
  */
 export const initializeData = async (): Promise<void> => {
   await ensureFileExists(HABITS_FILE, []);
-  await ensureFileExists(COMPLETIONS_FILE, []);
   await ensureFileExists(NOTES_FILE, []);
   await ensureFileExists(SETTINGS_FILE, DEFAULT_SETTINGS);
   await ensureFileExists(COUNTERS_FILE, []);
-  await ensureFileExists(TAGS_FILE, []);
   await ensureFileExists(NOTES_TEMPLATES_FILE, [
     {
       id: "daily",
@@ -115,6 +141,7 @@ export const createHabit = async (
     currentCounter: 0,
     isActive: true,
     createdAt: new Date().toISOString(),
+    completedDays: [],
   };
 
   habits.push(newHabit);
@@ -182,161 +209,155 @@ export const replaceAllHabits = async (habits: Habit[]): Promise<void> => {
 };
 
 /**
- * Get all completion records
- * @returns Promise with all completion records
+ * Build completion records for a habit from its completedDays array
+ */
+const habitCompletedDaysToCompletions = (habit: Habit): CompletionRecord[] => {
+  const days = habit.completedDays || [];
+  return days.map((dayInt) => completionFromDay(habit.id, dayInt, true));
+};
+
+/**
+ * Get all completion records (derived from habits.completedDays)
  */
 export const getCompletions = async (): Promise<CompletionRecord[]> => {
-  return await readData<CompletionRecord[]>(COMPLETIONS_FILE);
+  const habits = await getHabits();
+  return habits.flatMap(habitCompletedDaysToCompletions);
 };
 
 /**
  * Get completion records for a specific habit
- * @param habitId The habit ID to filter by
- * @returns Array of completion records for the habit
  */
 export const getCompletionsByHabitId = async (
   habitId: string
 ): Promise<CompletionRecord[]> => {
-  const completions = await getCompletions();
-  return completions.filter((c) => c.habitId === habitId);
+  const habit = await getHabitById(habitId);
+  if (!habit) return [];
+  return habitCompletedDaysToCompletions(habit);
 };
 
 /**
- * Get completion records for a specific date
- * @param date The date to filter by in YYYY-MM-DD format
- * @returns Array of completion records for the date
+ * Get completion records for a specific date (YYYY-MM-DD)
  */
 export const getCompletionsByDate = async (
   date: string
 ): Promise<CompletionRecord[]> => {
-  const completions = await getCompletions();
-  return completions.filter((c) => c.date === date);
+  const targetInt = dateStrToInt(date);
+  const habits = await getHabits();
+  return habits
+    .filter((h) => (h.completedDays || []).includes(targetInt))
+    .map((h) => completionFromDay(h.id, targetInt, true));
 };
 
 /**
- * Create a completion record
- * @param completionData The completion data to create
- * @returns The created completion record
+ * Create or update a completion record (upsert into habit.completedDays)
  */
 export const createCompletion = async (
   completionData: Omit<CompletionRecord, "id" | "completedAt">
 ): Promise<CompletionRecord> => {
-  const completions = await getCompletions();
-
-  // Check if a record already exists for this habit and date
-  const existingIndex = completions.findIndex(
-    (c) =>
-      c.habitId === completionData.habitId && c.date === completionData.date
-  );
-
-  const newCompletion: CompletionRecord = {
-    id: uuidv4(),
-    ...completionData,
-    completedAt: new Date().toISOString(),
-  };
-
-  if (existingIndex >= 0) {
-    // Update existing record
-    completions[existingIndex] = newCompletion;
-  } else {
-    // Add new record
-    completions.push(newCompletion);
+  const { habitId, date, completed } = completionData;
+  const habit = await getHabitById(habitId);
+  if (!habit) {
+    throw new Error(`Habit with ID ${habitId} not found`);
   }
 
-  await writeData(COMPLETIONS_FILE, completions);
+  const dateInt = dateStrToInt(date);
+  const updatedDays = new Set(habit.completedDays || []);
 
-  // Update habit streak
-  await updateHabitStreaks(completionData.habitId);
+  if (completed) {
+    updatedDays.add(dateInt);
+  } else {
+    updatedDays.delete(dateInt);
+  }
 
-  return newCompletion;
+  await updateHabit(habitId, { completedDays: Array.from(updatedDays) });
+  await updateHabitStreaks(habitId);
+
+  return completionFromDay(habitId, dateInt, completed ?? true);
 };
 
 /**
  * Create multiple completion records in a single batch operation
- * This prevents race conditions when creating multiple completions simultaneously
- * @param completionsData Array of completion data to create
- * @returns Array of created completion records
+ * (derived and stored on habits)
  */
 export const createCompletionsBatch = async (
   completionsData: Array<Omit<CompletionRecord, "id" | "completedAt">>
 ): Promise<CompletionRecord[]> => {
-  const completions = await getCompletions();
-  const newCompletions: CompletionRecord[] = [];
-  const habitIds = new Set<string>();
+  const habits = await getHabits();
+  const habitMap = new Map<string, Habit>();
+  habits.forEach((h) => habitMap.set(h.id, h));
 
-  // Process all completions in the batch
+  const changedHabits = new Map<string, Set<number>>();
+  const created: CompletionRecord[] = [];
+
   for (const completionData of completionsData) {
-    // Check if a record already exists for this habit and date
-    const existingIndex = completions.findIndex(
-      (c) =>
-        c.habitId === completionData.habitId && c.date === completionData.date
-    );
+    const habit = habitMap.get(completionData.habitId);
+    if (!habit) continue;
+    const dateInt = dateStrToInt(completionData.date);
+    const set =
+      changedHabits.get(habit.id) || new Set<number>(habit.completedDays || []);
 
-    const newCompletion: CompletionRecord = {
-      id: uuidv4(),
-      ...completionData,
-      completedAt: new Date().toISOString(),
-    };
-
-    if (existingIndex >= 0) {
-      // Update existing record
-      completions[existingIndex] = newCompletion;
+    if (completionData.completed) {
+      set.add(dateInt);
     } else {
-      // Add new record
-      completions.push(newCompletion);
+      set.delete(dateInt);
     }
 
-    newCompletions.push(newCompletion);
-    habitIds.add(completionData.habitId);
+    changedHabits.set(habit.id, set);
+    created.push(
+      completionFromDay(habit.id, dateInt, completionData.completed ?? true)
+    );
   }
 
-  // Write all changes in a single operation to prevent race conditions
-  await writeData(COMPLETIONS_FILE, completions);
-
-  // Update streaks for all affected habits
-  for (const habitId of habitIds) {
+  // Persist updates per habit
+  for (const [habitId, days] of changedHabits.entries()) {
+    await updateHabit(habitId, { completedDays: Array.from(days) });
     await updateHabitStreaks(habitId);
   }
 
-  return newCompletions;
+  return created;
 };
 
 /**
- * Delete a completion record
- * @param id The ID of the completion record to delete
- * @returns Whether the deletion was successful
+ * Delete a completion record by id (habitId-YYYYMMDD)
  */
 export const deleteCompletion = async (id: string): Promise<boolean> => {
-  const completions = await getCompletions();
-  const initialLength = completions.length;
+  const [habitId, dateIntStr] = id.split("-");
+  if (!habitId || !dateIntStr) return false;
+  const dateInt = parseInt(dateIntStr, 10);
 
-  const filteredCompletions = completions.filter((c) => c.id !== id);
+  const habit = await getHabitById(habitId);
+  if (!habit || !habit.completedDays) return false;
 
-  if (filteredCompletions.length === initialLength) {
-    return false;
-  }
+  const before = habit.completedDays.length;
+  const updated = habit.completedDays.filter((d) => d !== dateInt);
+  if (updated.length === before) return false;
 
-  await writeData(COMPLETIONS_FILE, filteredCompletions);
+  await updateHabit(habitId, { completedDays: updated });
+  await updateHabitStreaks(habitId);
   return true;
 };
 
 /**
- * Update a completion record
- * @param completion The completion record to update
- * @returns Whether the update was successful
+ * Update a completion record (interpreted as set/unset for the date)
  */
 export const updateCompletion = async (
   completion: CompletionRecord
 ): Promise<boolean> => {
-  const completions = await getCompletions();
-  const index = completions.findIndex((c) => c.id === completion.id);
+  const { habitId, date, completed } = completion;
+  const habit = await getHabitById(habitId);
+  if (!habit) return false;
 
-  if (index === -1) {
-    return false;
+  const dateInt = dateStrToInt(date);
+  const updatedDays = new Set(habit.completedDays || []);
+
+  if (completed) {
+    updatedDays.add(dateInt);
+  } else {
+    updatedDays.delete(dateInt);
   }
 
-  completions[index] = completion;
-  await writeData(COMPLETIONS_FILE, completions);
+  await updateHabit(habitId, { completedDays: Array.from(updatedDays) });
+  await updateHabitStreaks(habitId);
   return true;
 };
 
@@ -353,8 +374,8 @@ export const updateHabitStreaks = async (habitId: string): Promise<void> => {
   let bestStreak = habit.bestStreak;
   let currentCounter = 0;
 
-  // Get all completions for this habit
-  const completions = await getCompletionsByHabitId(habitId);
+  // Build completions from completedDays
+  const completions = habitCompletedDaysToCompletions(habit);
 
   // Sort by date (oldest first for streak calculations)
   completions.sort((a, b) => a.date.localeCompare(b.date));
@@ -678,14 +699,12 @@ export const updateSettings = async (
 
 /**
  * Reset all data (delete all entries from JSON files)
- * Keeps settings and templates, but clears habits, completions, notes, counters, and tags
+ * Keeps settings and templates, but clears habits, notes, and counters
  */
 export const resetAllData = async (): Promise<void> => {
   await writeData(HABITS_FILE, []);
-  await writeData(COMPLETIONS_FILE, []);
   await writeData(NOTES_FILE, []);
   await writeData(COUNTERS_FILE, []);
-  await writeData(TAGS_FILE, []);
   console.log("All data has been reset");
 };
 
@@ -797,7 +816,23 @@ export const calculateHabitAnalytics = async (
 export const replaceAllCompletions = async (
   completions: CompletionRecord[]
 ): Promise<void> => {
-  await writeData(COMPLETIONS_FILE, completions);
+  const habits = await getHabits();
+  const habitMap = new Map<string, Habit>();
+
+  habits.forEach((h) => habitMap.set(h.id, { ...h, completedDays: [] }));
+
+  completions.forEach((c) => {
+    if (!c.completed) return;
+    const habit = habitMap.get(c.habitId);
+    if (!habit) return;
+    const dayInt = dateStrToInt(c.date);
+    const set = new Set(habit.completedDays || []);
+    set.add(dayInt);
+    habit.completedDays = Array.from(set);
+  });
+
+  const updatedHabits = Array.from(habitMap.values());
+  await writeData(HABITS_FILE, updatedHabits);
 };
 
 /**

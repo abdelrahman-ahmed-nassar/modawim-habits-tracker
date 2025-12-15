@@ -363,7 +363,7 @@ const HabitCard: React.FC<HabitCardProps> = ({
             {record.completed && <Check className="w-4 h-4 text-white" />}
           </div>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            {record.completed ? "مكتملة" : "أكمل"}
+            {record.completed ? "مكتمل 🎉" : "أكمل"}
           </span>
         </div>
       </div>
@@ -664,7 +664,7 @@ const Weekly: React.FC = () => {
                 date: currentDate,
                 completed: completedHabitIds.has(habit.habitId),
                 completedAt: completedHabitIds.has(habit.habitId)
-                  ? currentDate + "T12:00:00Z"
+                  ? currentDate
                   : "",
               }));
 

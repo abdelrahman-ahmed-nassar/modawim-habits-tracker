@@ -13,6 +13,7 @@ export interface Habit {
   motivationNote?: string;
   isActive: boolean;
   order?: number; // Order for custom sorting
+  completedDays?: number[]; // Stored as YYYYMMDD integers
 }
 
 // Re-export for backward compatibility

@@ -862,15 +862,10 @@ const HabitListItem: React.FC<HabitListItemProps> = ({
 
       {/* Right side: Completion info */}
       <div className="flex-shrink-0 text-right">
-        {record.completed && record.completedAt && (
+        {record.completed && (
           <div className="flex items-center space-x-1 text-sm text-gray-500 dark:text-gray-400">
             <Clock className="w-4 h-4" />
-            <span>
-              {new Date(record.completedAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+            <span>{record.date}</span>
           </div>
         )}
         {!record.completed && (
