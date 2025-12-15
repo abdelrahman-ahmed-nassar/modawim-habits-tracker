@@ -8,7 +8,8 @@ export type ButtonVariant =
   | "outline"
   | "ghost"
   | "danger"
-  | "success";
+  | "success"
+  | "destructive";
 
 export type ButtonSize = "sm" | "md" | "lg";
 
@@ -51,6 +52,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 dark:bg-red-500 dark:hover:bg-red-600",
       success:
         "bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 dark:bg-green-500 dark:hover:bg-green-600",
+      destructive:
+        "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 dark:bg-red-500 dark:hover:bg-red-600",
     };
 
     const sizes = {

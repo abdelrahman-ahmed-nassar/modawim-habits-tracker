@@ -5,28 +5,32 @@ import { validateCompletion } from "../utils/validation";
 import * as dataService from "../services/dataService";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
 import { isValidDateFormat } from "../utils/validation";
+import type { AuthenticatedRequest } from "../types/auth";
 
 /**
  * Get completion records for a specific date
  * @route GET /api/completions/date/:date
  */
 export const getDailyCompletions = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { date } = req.params;
 
     // Validate date format
     if (!isValidDateFormat(date)) {
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
-    } // Get all completions for this date
-    const completions = await dataService.getCompletionsByDate(date);
+    }
 
-    // Get all habits to filter out inactive ones
-    const habits = await dataService.getHabits();
+    const userId = req.user!.id;
+
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabitIds = habits.filter((h) => h.isActive).map((h) => h.id);
 
+    const allCompletions = await dataService.getCompletionsByDate(date);
+
     // Filter completions to only include active habits
-    const filteredCompletions = completions.filter((c) =>
-      activeHabitIds.includes(c.habitId)
+    const filteredCompletions = allCompletions.filter(
+      (c: CompletionRecord) => activeHabitIds.includes(c.habitId)
     );
 
     res.status(200).json({
@@ -41,11 +45,12 @@ export const getDailyCompletions = asyncHandler(
  * @route GET /api/habits/:id/records
  */
 export const getHabitCompletions = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { habitId } = req.params;
-    const { startDate, endDate } = req.query; // Check if habit exists
+    const { startDate, endDate } = req.query;
+
     const habit = await dataService.getHabitById(habitId);
-    if (!habit) {
+    if (!habit || habit.userId !== req.user!.id) {
       throw new AppError(`Habit with ID ${habitId} not found`, 404);
     }
 
@@ -86,7 +91,7 @@ export const getHabitCompletions = asyncHandler(
  * @route POST /api/habits/:id/complete
  */
 export const markHabitComplete = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const { date, completed, habitId } = req.body;
 
@@ -100,9 +105,10 @@ export const markHabitComplete = asyncHandler(
 
     if (!date) {
       throw new AppError("Date is required", 400);
-    } // Check if habit exists
+    }
+
     const habit = await dataService.getHabitById(targetHabitId);
-    if (!habit) {
+    if (!habit || habit.userId !== req.user!.id) {
       throw new AppError(`Habit with ID ${targetHabitId} not found`, 404);
     }
 
@@ -145,7 +151,7 @@ export const markHabitComplete = asyncHandler(
  * @route DELETE /api/habits/:id/complete/:date
  */
 export const deleteCompletion = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { id, date, habitId } = req.params;
 
     // Use habitId or id parameter
@@ -154,9 +160,10 @@ export const deleteCompletion = asyncHandler(
     // Validate date format
     if (!isValidDateFormat(date)) {
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
-    } // Check if habit exists
+    }
+
     const habit = await dataService.getHabitById(targetHabitId);
-    if (!habit) {
+    if (!habit || habit.userId !== req.user!.id) {
       throw new AppError(`Habit with ID ${targetHabitId} not found`, 404);
     }
 
@@ -200,18 +207,21 @@ export const deleteCompletion = asyncHandler(
  * @route GET /api/completions/range/:startDate/:endDate
  */
 export const getCompletionsInRange = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { startDate, endDate } = req.params;
 
     // Validate date formats
     if (!isValidDateFormat(startDate) || !isValidDateFormat(endDate)) {
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
-    } // Get all completions
-    const completions = await dataService.getCompletions();
+    }
 
-    // Get all habits to filter out inactive ones
-    const habits = await dataService.getHabits();
+    const userId = req.user!.id;
+
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabitIds = habits.filter((h) => h.isActive).map((h) => h.id);
+
+    const completions = await dataService.getCompletions();
 
     // Filter by date range (inclusive) and only include active habits
     const filtered = completions.filter(
@@ -233,7 +243,7 @@ export const getCompletionsInRange = asyncHandler(
  * @route PUT /api/completions/:id
  */
 export const updateCompletion = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const { completed } = req.body;
 
@@ -243,9 +253,10 @@ export const updateCompletion = asyncHandler(
 
     if (!completion) {
       throw new AppError(`Completion with ID ${id} not found`, 404);
-    } // Check if habit exists
+    }
+
     const habit = await dataService.getHabitById(completion.habitId);
-    if (!habit) {
+    if (!habit || habit.userId !== req.user!.id) {
       throw new AppError(`Habit with ID ${completion.habitId} not found`, 404);
     }
 
@@ -293,7 +304,7 @@ export const updateCompletion = asyncHandler(
  * @route POST /api/completions/batch
  */
 export const createCompletionsBatch = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { completions } = req.body;
 
     if (!Array.isArray(completions) || completions.length === 0) {
@@ -307,8 +318,11 @@ export const createCompletionsBatch = asyncHandler(
     > = [];
 
     // Get all habits to check active status
+    const userId = req.user!.id;
+
     const allHabits = await dataService.getHabits();
-    const activeHabitIds = allHabits.filter((h) => h.isActive).map((h) => h.id);
+    const habits = allHabits.filter((h) => h.userId === userId);
+    const activeHabitIds = habits.filter((h) => h.isActive).map((h) => h.id);
 
     for (const completionData of completions) {
       const { habitId, date, completed } = completionData;
@@ -320,7 +334,7 @@ export const createCompletionsBatch = asyncHandler(
 
       // Check if habit exists
       const habit = await dataService.getHabitById(habitId);
-      if (!habit) {
+      if (!habit || habit.userId !== req.user!.id) {
         throw new AppError(`Habit with ID ${habitId} not found`, 404);
       }
 

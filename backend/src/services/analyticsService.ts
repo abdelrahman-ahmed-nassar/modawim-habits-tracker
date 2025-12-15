@@ -47,7 +47,8 @@ export interface AllHabitsAnalytics {
  * @returns Analytics for all habits
  */
 export const calculateAllHabitsAnalytics = async (
-  period: string = "30days"
+  period: string = "30days",
+  userId?: string
 ): Promise<AllHabitsAnalytics> => {
   // Calculate date range based on period
   let startDate: string;
@@ -66,11 +67,16 @@ export const calculateAllHabitsAnalytics = async (
   }
 
   // Get all habits and their completions
-  const habits = await dataService.getHabits();
+  const allHabits = await dataService.getHabits();
+  const habits = userId
+    ? allHabits.filter((habit) => habit.userId === userId)
+    : allHabits;
+
   const allCompletions = await dataService.getCompletions();
-  const completions = allCompletions.filter(
-    (c: CompletionRecord) => c.date >= startDate && c.date <= endDate
-  );
+  const habitIds = new Set(habits.map((h) => h.id));
+  const completions = allCompletions
+    .filter((c: CompletionRecord) => habitIds.has(c.habitId))
+    .filter((c: CompletionRecord) => c.date >= startDate && c.date <= endDate);
   // Get active habits only
   const activeHabits = habits.filter((habit) => habit.isActive);
 

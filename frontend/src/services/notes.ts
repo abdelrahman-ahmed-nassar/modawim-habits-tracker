@@ -1,26 +1,13 @@
 import { DailyNote } from "@shared/types/note";
-
-const API_BASE_URL = "http://localhost:5002/api";
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+import apiService from "./api";
 
 export class NotesService {
   /**
    * Get all notes
    */
   static async getAllNotes(): Promise<DailyNote[]> {
-    const response = await fetch(`${API_BASE_URL}/notes`);
-    const result: ApiResponse<DailyNote[]> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch notes");
-    }
-
-    return result.data;
+    const res = await apiService.get<DailyNote[]>("/notes");
+    return res.data;
   }
 
   /**
@@ -28,37 +15,18 @@ export class NotesService {
    * @param date - Date in YYYY-MM-DD format
    */
   static async getNoteByDate(date: string): Promise<DailyNote> {
-    const response = await fetch(`${API_BASE_URL}/notes/${date}`);
-    const result: ApiResponse<DailyNote> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch note");
-    }
-
-    return result.data;
+    const res = await apiService.get<DailyNote>(`/notes/${date}`);
+    return res.data;
   }
 
   /**
    * Create a new note
    */
   static async createNote(
-    note: Omit<DailyNote, "id" | "createdAt" | "updatedAt">
+    note: Omit<DailyNote, "id" | "createdAt" | "updatedAt" | "userId">
   ): Promise<DailyNote> {
-    const response = await fetch(`${API_BASE_URL}/notes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(note),
-    });
-
-    const result: ApiResponse<DailyNote> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to create note");
-    }
-
-    return result.data;
+    const res = await apiService.post<DailyNote>("/notes", note);
+    return res.data;
   }
 
   /**
@@ -68,142 +36,64 @@ export class NotesService {
     id: string,
     note: Partial<Omit<DailyNote, "id" | "date" | "createdAt" | "updatedAt">>
   ): Promise<DailyNote> {
-    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(note),
-    });
-
-    const result: ApiResponse<DailyNote> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to update note");
-    }
-
-    return result.data;
+    const res = await apiService.put<DailyNote>(`/notes/${id}`, note);
+    return res.data;
   }
 
   /**
    * Delete a note
    */
   static async deleteNote(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
-      method: "DELETE",
-    });
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to delete note");
-    }
+    await apiService.delete<void>(`/notes/${id}`);
   }
   /**
    * Get available moods
    */
   static async getMoods(): Promise<string[]> {
-    const response = await fetch(`${API_BASE_URL}/options/moods?legacy=true`);
-    const result: ApiResponse<string[]> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch moods");
-    }
-
-    return result.data;
+    const res = await apiService.get<string[]>(
+      "/options/moods",
+      { params: { legacy: "true" } }
+    );
+    return res.data;
   }
 
   /**
    * Add a new mood
    */
   static async addMood(mood: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/options/moods`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ mood }),
-    });
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to add mood");
-    }
+    await apiService.post<void>("/options/moods", { mood });
   }
 
   /**
    * Remove a mood
    */
   static async removeMood(mood: string): Promise<void> {
-    const response = await fetch(
-      `${API_BASE_URL}/options/moods/${encodeURIComponent(mood)}`,
-      {
-        method: "DELETE",
-      }
-    );
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to remove mood");
-    }
+    await apiService.delete<void>(`/options/moods/${encodeURIComponent(mood)}`);
   }
   /**
    * Get available productivity levels
    */
   static async getProductivityLevels(): Promise<string[]> {
-    const response = await fetch(
-      `${API_BASE_URL}/options/productivity-levels?legacy=true`
+    const res = await apiService.get<string[]>(
+      "/options/productivity-levels",
+      { params: { legacy: "true" } }
     );
-    const result: ApiResponse<string[]> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch productivity levels");
-    }
-
-    return result.data;
+    return res.data;
   }
 
   /**
    * Add a new productivity level
    */
   static async addProductivityLevel(level: string): Promise<void> {
-    const response = await fetch(
-      `${API_BASE_URL}/options/productivity-levels`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ level }),
-      }
-    );
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to add productivity level");
-    }
+    await apiService.post<void>("/options/productivity-levels", { level });
   }
   /**
    * Remove a productivity level
    */
   static async removeProductivityLevel(level: string): Promise<void> {
-    const response = await fetch(
-      `${API_BASE_URL}/options/productivity-levels/${encodeURIComponent(
-        level
-      )}`,
-      {
-        method: "DELETE",
-      }
+    await apiService.delete<void>(
+      `/options/productivity-levels/${encodeURIComponent(level)}`
     );
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to remove productivity level");
-    }
   }
 
   /**
@@ -235,8 +125,7 @@ export class NotesService {
       productivity: number;
     };
   }> {
-    const response = await fetch(`${API_BASE_URL}/notes/analytics/overview`);
-    const result: ApiResponse<{
+    const res = await apiService.get<{
       totalNotes: number;
       notesWithMood: number;
       notesWithProductivity: number;
@@ -262,13 +151,9 @@ export class NotesService {
         mood: number;
         productivity: number;
       };
-    }> = await response.json();
+    }>("/notes/analytics/overview");
 
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch notes analytics");
-    }
-
-    return result.data;
+    return res.data;
   }
 
   /**
@@ -292,10 +177,8 @@ export class NotesService {
     const params = new URLSearchParams();
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
-    const response = await fetch(
-      `${API_BASE_URL}/notes/analytics/mood-trends?${params}`
-    );
-    const result: ApiResponse<{
+
+    const res = await apiService.get<{
       trends: Array<{
         month: string;
         averageMood: number;
@@ -307,13 +190,11 @@ export class NotesService {
         }>;
       }>;
       moodValueMap: Record<string, number>;
-    }> = await response.json();
+    }>("/notes/analytics/mood-trends", {
+      params: Object.fromEntries(params.entries()),
+    });
 
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch mood trends");
-    }
-
-    return result.data;
+    return res.data;
   }
 
   /**
@@ -330,10 +211,7 @@ export class NotesService {
     }>;
     productivityValueMap: Record<string, number>;
   }> {
-    const response = await fetch(
-      `${API_BASE_URL}/notes/analytics/productivity-correlation`
-    );
-    const result: ApiResponse<{
+    const res = await apiService.get<{
       correlations: Array<{
         habitId: string;
         habitName: string;
@@ -344,15 +222,9 @@ export class NotesService {
         productivityImpact: number | null;
       }>;
       productivityValueMap: Record<string, number>;
-    }> = await response.json();
+    }>("/notes/analytics/productivity-correlation");
 
-    if (!result.success) {
-      throw new Error(
-        result.message || "Failed to fetch productivity correlation"
-      );
-    }
-
-    return result.data;
+    return res.data;
   }
 
   /**
@@ -374,10 +246,7 @@ export class NotesService {
       }
     >;
   }> {
-    const response = await fetch(
-      `${API_BASE_URL}/notes/calendar/${year}/${month}`
-    );
-    const result: ApiResponse<{
+    const res = await apiService.get<{
       year: number;
       month: number;
       notes: Array<{
@@ -390,11 +259,7 @@ export class NotesService {
         productivityLevel?: string;
         productivityValue?: number;
       }>;
-    }> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch calendar data");
-    }
+    }>(`/notes/calendar/${year}/${month}`);
 
     // Transform the data to the format expected by the NotesCalendar component
     const calendarData: Record<
@@ -408,8 +273,8 @@ export class NotesService {
     > = {};
 
     // Populate the calendar data with entries from the notes array
-    if (result.data.notes && Array.isArray(result.data.notes)) {
-      result.data.notes.forEach((note) => {
+    if (res.data.notes && Array.isArray(res.data.notes)) {
+      res.data.notes.forEach((note) => {
         if (note.date) {
           calendarData[note.date] = {
             hasNote: true,
@@ -424,9 +289,9 @@ export class NotesService {
     }
 
     return {
-      year: result.data.year,
-      month: result.data.month,
-      totalNotes: result.data.notes?.length || 0,
+      year: res.data.year,
+      month: res.data.month,
+      totalNotes: res.data.notes?.length || 0,
       calendarData: calendarData,
     };
   }

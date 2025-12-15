@@ -8,13 +8,14 @@ import {
   formatDateToString,
   isDateActiveForHabit,
 } from "../utils/dateUtils";
+import type { AuthenticatedRequest } from "../types/auth";
 
 /**
  * Get all completions for a specific date
  * @route GET /api/records/daily/:date
  */
 export const getDailyRecords = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { date } = req.params;
 
     // Validate date format
@@ -22,13 +23,17 @@ export const getDailyRecords = asyncHandler(
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
     }
 
-    // Get all completions for this date
-    const allCompletions = await dataService.getCompletions();
-    const dailyCompletions = allCompletions.filter((c) => c.date === date);
+    const userId = req.user!.id;
 
-    // Get all habits to include habit details
-    const habits = await dataService.getHabits();
+    const allCompletions = await dataService.getCompletions();
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabits = habits.filter((h) => h.isActive);
+
+    const habitIds = new Set(habits.map((h) => h.id));
+    const dailyCompletions = allCompletions.filter(
+      (c) => c.date === date && habitIds.has(c.habitId)
+    );
 
     // Filter completions to only include active habits
     const activeCompletions = dailyCompletions.filter((completion) =>
@@ -84,7 +89,7 @@ export const getDailyRecords = asyncHandler(
  * @route GET /api/records/weekly/:startDate
  */
 export const getWeeklyRecords = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { startDate } = req.params;
 
     // Validate date format
@@ -101,13 +106,20 @@ export const getWeeklyRecords = asyncHandler(
     // Get date range
     const dateRange = getDatesBetween(startDate, endDate);
 
-    // Get all completions within the date range
+    const userId = req.user!.id;
+
     const allCompletions = await dataService.getCompletions();
-    const weeklyCompletions = allCompletions.filter(
-      (c) => c.date >= startDate && c.date <= endDate
-    ); // Get all habits
-    const habits = await dataService.getHabits();
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabits = habits.filter((h) => h.isActive);
+
+    const habitIds = new Set(habits.map((h) => h.id));
+    const weeklyCompletions = allCompletions.filter(
+      (c) =>
+        c.date >= startDate &&
+        c.date <= endDate &&
+        habitIds.has(c.habitId)
+    );
 
     // Filter completions to only include active habits
     const activeWeeklyCompletions = weeklyCompletions.filter((completion) =>
@@ -232,7 +244,7 @@ export const getWeeklyRecords = asyncHandler(
  * @route GET /api/records/monthly/:year/:month
  */
 export const getMonthlyRecords = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { year, month } = req.params;
 
     // Validate year and month
@@ -253,18 +265,25 @@ export const getMonthlyRecords = asyncHandler(
     // Get date range for the month
     const dateRange = getDatesBetween(startDateStr, endDateStr);
 
-    // Get all completions within the month
+    const userId = req.user!.id;
+
     const allCompletions = await dataService.getCompletions();
-    const monthlyCompletions = allCompletions.filter(
-      (c) => c.date >= startDateStr && c.date <= endDateStr
-    ); // Get all habits
-    const habits = await dataService.getHabits();
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabits = habits.filter((h) => h.isActive);
 
-    // Filter completions to only include active habits
+    const habitIds = new Set(habits.map((h) => h.id));
+
+    const monthlyCompletions = allCompletions.filter(
+      (c) =>
+        c.date >= startDateStr &&
+        c.date <= endDateStr &&
+        habitIds.has(c.habitId)
+    );
+
     const activeMonthlyCompletions = monthlyCompletions.filter((completion) =>
       activeHabits.some((habit) => habit.id === completion.habitId)
-    ); // Count completions per day
+    );
     const dailyCompletionCounts = dateRange.map((date) => {
       const dayCompletions = activeMonthlyCompletions.filter(
         (c) => c.date === date && c.completed

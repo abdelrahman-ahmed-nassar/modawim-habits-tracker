@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import { Habit } from "@shared/types/habit";
+import { habitsService } from "../../services/habits";
 
 interface MotivationalPopupProps {
   onClose?: () => void;
@@ -18,14 +19,10 @@ const MotivationalPopup: React.FC<MotivationalPopupProps> = ({ onClose }) => {
 
   const fetchAndShowMotivation = async () => {
     try {
-      // Fetch a random habit
-      const response = await fetch(
-        "http://localhost:5002/api/habits/random/pick"
-      );
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setHabit(data.data);
+      // Fetch a random habit for the authenticated user
+      const randomHabit = await habitsService.getRandomHabit();
+      if (randomHabit) {
+        setHabit(randomHabit);
         setIsOpen(true);
       }
     } catch (error) {

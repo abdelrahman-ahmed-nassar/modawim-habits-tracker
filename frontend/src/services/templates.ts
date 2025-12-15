@@ -1,40 +1,21 @@
 import { NoteTemplate } from "@shared/types/template";
-
-const API_BASE_URL = "http://localhost:5002/api";
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+import apiService from "./api";
 
 export class TemplatesService {
   /**
    * Get all templates
    */
   static async getAllTemplates(): Promise<NoteTemplate[]> {
-    const response = await fetch(`${API_BASE_URL}/templates`);
-    const result: ApiResponse<NoteTemplate[]> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch templates");
-    }
-
-    return result.data;
+    const res = await apiService.get<NoteTemplate[]>("/templates");
+    return res.data;
   }
 
   /**
    * Get template by ID
    */
   static async getTemplateById(id: string): Promise<NoteTemplate> {
-    const response = await fetch(`${API_BASE_URL}/templates/${id}`);
-    const result: ApiResponse<NoteTemplate> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch template");
-    }
-
-    return result.data;
+    const res = await apiService.get<NoteTemplate>(`/templates/${id}`);
+    return res.data;
   }
 
   /**
@@ -43,21 +24,8 @@ export class TemplatesService {
   static async createTemplate(
     template: Omit<NoteTemplate, "id" | "createdAt" | "updatedAt">
   ): Promise<NoteTemplate> {
-    const response = await fetch(`${API_BASE_URL}/templates`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(template),
-    });
-
-    const result: ApiResponse<NoteTemplate> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to create template");
-    }
-
-    return result.data;
+    const res = await apiService.post<NoteTemplate>("/templates", template);
+    return res.data;
   }
 
   /**
@@ -67,36 +35,18 @@ export class TemplatesService {
     id: string,
     template: Partial<Omit<NoteTemplate, "id" | "createdAt" | "updatedAt">>
   ): Promise<NoteTemplate> {
-    const response = await fetch(`${API_BASE_URL}/templates/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(template),
-    });
-
-    const result: ApiResponse<NoteTemplate> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to update template");
-    }
-
-    return result.data;
+    const res = await apiService.put<NoteTemplate>(
+      `/templates/${id}`,
+      template
+    );
+    return res.data;
   }
 
   /**
    * Delete a template
    */
   static async deleteTemplate(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/templates/${id}`, {
-      method: "DELETE",
-    });
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to delete template");
-    }
+    await apiService.delete<void>(`/templates/${id}`);
   }
 
   /**

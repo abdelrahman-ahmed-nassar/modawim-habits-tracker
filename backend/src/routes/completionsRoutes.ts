@@ -2,8 +2,12 @@ import express, { Router } from "express";
 import * as completionController from "../controllers/completionController";
 import { toggleHabitCompletion } from "../controllers/toggleController";
 import { AppError } from "../middleware/errorHandler";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router: Router = express.Router();
+
+// All completion routes are scoped to the authenticated user
+router.use(authMiddleware);
 
 // GET /api/completions/date/:date - Get all completions for a specific date
 router.get("/date/:date", async (req, res, next) => {

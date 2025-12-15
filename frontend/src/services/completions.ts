@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_BASE_URL = "http://localhost:5002/api";
+import apiService from "./api";
 
 interface Completion {
   id: string;
@@ -16,10 +14,10 @@ class CompletionsService {
    * @param date - The date in ISO format
    */
   async getDailyCompletions(date: string): Promise<Completion[]> {
-    const response = await axios.get(
-      `${API_BASE_URL}/completions/date/${date}`
+    const res = await apiService.get<Completion[]>(
+      `/completions/date/${date}`
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -27,10 +25,10 @@ class CompletionsService {
    * @param habitId - The ID of the habit
    */
   async getHabitCompletions(habitId: string): Promise<Completion[]> {
-    const response = await axios.get(
-      `${API_BASE_URL}/completions/habit/${habitId}`
+    const res = await apiService.get<Completion[]>(
+      `/completions/habit/${habitId}`
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -42,10 +40,10 @@ class CompletionsService {
     startDate: string,
     endDate: string
   ): Promise<Completion[]> {
-    const response = await axios.get(
-      `${API_BASE_URL}/completions/range/${startDate}/${endDate}`
+    const res = await apiService.get<Completion[]>(
+      `/completions/range/${startDate}/${endDate}`
     );
-    return response.data.data;
+    return res.data;
   }
   /**
    * Create a new completion
@@ -71,11 +69,11 @@ class CompletionsService {
       requestData.completed = completed;
     }
 
-    const response = await axios.post(
-      `${API_BASE_URL}/completions`,
+    const res = await apiService.post<Completion>(
+      "/completions",
       requestData
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -89,10 +87,11 @@ class CompletionsService {
       completed?: boolean;
     }>
   ): Promise<Completion[]> {
-    const response = await axios.post(`${API_BASE_URL}/completions/batch`, {
-      completions,
-    });
-    return response.data.data;
+    const res = await apiService.post<Completion[]>(
+      "/completions/batch",
+      { completions }
+    );
+    return res.data;
   }
 
   /**
@@ -101,11 +100,11 @@ class CompletionsService {
    * @param date - The date in ISO format
    */
   async toggleCompletion(habitId: string, date: string): Promise<Completion> {
-    const response = await axios.post(`${API_BASE_URL}/completions/toggle`, {
+    const res = await apiService.post<Completion>("/completions/toggle", {
       habitId,
       date,
     });
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -114,7 +113,9 @@ class CompletionsService {
    * @param date - The date in ISO format
    */
   async deleteCompletion(habitId: string, date: string): Promise<void> {
-    await axios.delete(`${API_BASE_URL}/completions/${habitId}/${date}`);
+    await apiService.delete<void>(
+      `/completions/${habitId}/${date}`
+    );
   }
 
   /**
@@ -123,13 +124,11 @@ class CompletionsService {
    * @param date - The date in ISO format
    */
   async markHabitComplete(habitId: string, date: string): Promise<Completion> {
-    const response = await axios.post(
-      `${API_BASE_URL}/habits/${habitId}/complete`,
-      {
-        date,
-      }
+    const res = await apiService.post<Completion>(
+      `/habits/${habitId}/complete`,
+      { date }
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -138,7 +137,9 @@ class CompletionsService {
    * @param date - The date in ISO format
    */
   async deleteHabitCompletion(habitId: string, date: string): Promise<void> {
-    await axios.delete(`${API_BASE_URL}/habits/${habitId}/complete/${date}`);
+    await apiService.delete<void>(
+      `/habits/${habitId}/complete/${date}`
+    );
   }
 }
 

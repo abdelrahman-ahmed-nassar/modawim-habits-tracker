@@ -2,6 +2,17 @@
 
 Base URL: `http://localhost:5002/api`
 
+> **Auth & scoping**
+>
+> - All data endpoints (everything under `/api/...` except `/health` and `/auth/*`) require `Authorization: Bearer <JWT>`
+> - Each request is scoped to the authenticated user: you only ever see and modify **your own** habits, notes, completions and settings.
+
+## 0. Authentication
+
+- `POST /api/auth/register` – Create a new user account (email + password), returns `{ user, token }`
+- `POST /api/auth/login` – Log in with existing credentials, returns `{ user, token }`
+- `GET /api/auth/me` – Get the current authenticated user (requires `Authorization: Bearer <token>`)
+
 ## Health Check
 
 - `GET /health` - Check server status
@@ -60,15 +71,19 @@ Base URL: `http://localhost:5002/api`
 
 ## 6. Settings Management
 
-- `GET /api/settings` - Get user settings
-- `PUT /api/settings` - Update user settings
+> **Note**: Settings are now stored per-user inside `users.json`. These endpoints are authenticated and operate on the current user's embedded settings.
+
+- `GET /api/settings` - Get current user's settings
+- `PUT /api/settings` - Update current user's settings
 
 ## 7. Options Management
 
-- `GET /api/options/moods` - Get available moods
+> **Legacy backing files**: Previously, moods and productivity levels were stored in `moods.json` and `productivity_levels.json`. They are now considered **legacy** and will be embedded per-user over time.
+
+- `GET /api/options/moods` - Get available moods for the current user
 - `POST /api/options/moods` - Add a new mood
 - `DELETE /api/options/moods/:mood` - Remove a mood
-- `GET /api/options/productivity-levels` - Get productivity levels
+- `GET /api/options/productivity-levels` - Get productivity levels for the current user
 - `POST /api/options/productivity-levels` - Add a productivity level
 - `DELETE /api/options/productivity-levels/:level` - Remove a productivity level
 
@@ -82,6 +97,8 @@ Base URL: `http://localhost:5002/api`
 
 ## 9. Note Templates Management
 
+> **Legacy**: These endpoints are backed by `notes_templates.json` today, but templates will eventually be embedded on each user.
+
 - `GET /api/templates` - Get all templates
 - `GET /api/templates/:id` - Get a template by ID
 - `POST /api/templates` - Create a template
@@ -90,7 +107,30 @@ Base URL: `http://localhost:5002/api`
 
 ## 10. Counters Management
 
-- `GET /api/counters` - Get all counters
+> **Legacy**: Long‑term counters are currently stored in `counters.json`, and will be moved under each user in `users.json`.
+
+- `GET /api/counters` - Get all counters for the current user
 - `POST /api/counters` - Create a counter
 - `PUT /api/counters/:id` - Update a counter
 - `DELETE /api/counters/:id` - Delete a counter
+
+## 11. Data Storage Overview
+
+Current primary collections:
+
+- `backend/data/users.json` – Users with embedded:
+  - `settings`
+  - `moods`
+  - `productivityLevels`
+  - `notesTemplates`
+  - `counters`
+- `backend/data/habits.json` – Habits with `userId` ownership
+- `backend/data/notes.json` – Daily notes with `userId` ownership
+
+Legacy JSON files (read‑only / in the process of being deprecated):
+
+- `backend/data/settings.json`
+- `backend/data/moods.json`
+- `backend/data/productivity_levels.json`
+- `backend/data/notes_templates.json`
+- `backend/data/counters.json`

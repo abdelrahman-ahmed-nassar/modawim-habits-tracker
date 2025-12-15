@@ -7,27 +7,11 @@ import {
   HabitAnalytics,
   NoteTemplate,
 } from "@shared/types";
-import { Settings } from "../types/models";
-
-// File names
+import type { User } from "@shared/types";
+// File names (collections)
+const USERS_FILE = "users.json";
 const HABITS_FILE = "habits.json";
 const NOTES_FILE = "notes.json";
-const SETTINGS_FILE = "settings.json";
-const NOTES_TEMPLATES_FILE = "notes_templates.json";
-const COUNTERS_FILE = "counters.json";
-
-// Default settings
-const DEFAULT_SETTINGS: Settings = {
-  userId: uuidv4(),
-  theme: "system",
-  language: "en",
-  notifications: {
-    enabled: true,
-    reminderTime: "09:00",
-  },
-  reminderEnabled: true,
-  reminderTime: "20:00",
-};
 
 // Date helpers for YYYY-MM-DD <-> YYYYMMDD integer conversion (UTC-based)
 const dateStrToInt = (dateStr: string): number =>
@@ -60,39 +44,59 @@ const completionFromDay = (
 };
 
 /**
+ * USERS COLLECTION HELPERS
+ */
+export const getUsers = async (): Promise<User[]> => {
+  return await readData<User[]>(USERS_FILE);
+};
+
+export const getUserById = async (id: string): Promise<User | null> => {
+  const users = await getUsers();
+  const user = users.find((u) => u.id === id);
+  return user || null;
+};
+
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+  const users = await getUsers();
+  const normalized = email.toLowerCase();
+  const user = users.find((u) => u.email.toLowerCase() === normalized);
+  return user || null;
+};
+
+export const saveUser = async (user: User): Promise<User> => {
+  const users = await getUsers();
+  const index = users.findIndex((u) => u.id === user.id);
+
+  if (index === -1) {
+    users.push(user);
+  } else {
+    users[index] = user;
+  }
+
+  await writeData(USERS_FILE, users);
+  return user;
+};
+
+export const deleteUserById = async (userId: string): Promise<boolean> => {
+  const users = await getUsers();
+  const initialLength = users.length;
+  const filtered = users.filter((u) => u.id !== userId);
+  if (filtered.length === initialLength) {
+    return false;
+  }
+  await writeData(USERS_FILE, filtered);
+  return true;
+};
+
+/**
  * Initialize the data files if they don't exist
  */
 export const initializeData = async (): Promise<void> => {
+  // Core collections
+  await ensureFileExists(USERS_FILE, []);
   await ensureFileExists(HABITS_FILE, []);
   await ensureFileExists(NOTES_FILE, []);
-  await ensureFileExists(SETTINGS_FILE, DEFAULT_SETTINGS);
-  await ensureFileExists(COUNTERS_FILE, []);
-  await ensureFileExists(NOTES_TEMPLATES_FILE, [
-    {
-      id: "daily",
-      name: "Daily Note",
-      template:
-        "# Daily Note - {{date}}\n\n## Tasks\n- [ ] \n\n## Notes\n\n\n## Mood\n\n\n## Achievements\n\n",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "weekly",
-      name: "Weekly Review",
-      template:
-        "# Weekly Review - {{weekStart}} to {{weekEnd}}\n\n## Accomplishments\n\n\n## Challenges\n\n\n## Next Week Goals\n\n",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "monthly",
-      name: "Monthly Review",
-      template:
-        "# Monthly Review - {{month}} {{year}}\n\n## Overview\n\n\n## Wins\n\n\n## Areas to Improve\n\n\n## Goals for Next Month\n\n",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
+
   console.log("Data files initialized");
 };
 
@@ -671,41 +675,85 @@ export const deleteNote = async (id: string): Promise<boolean> => {
 };
 
 /**
- * Get the app settings
- * @returns The app settings
+ * Delete all habits for a given user
  */
-export const getSettings = async (): Promise<Settings> => {
-  return await readData<Settings>(SETTINGS_FILE);
+export const deleteHabitsByUserId = async (userId: string): Promise<void> => {
+  const habits = await getHabits();
+  const filtered = habits.filter((h) => h.userId !== userId);
+  await writeData(HABITS_FILE, filtered);
 };
 
 /**
- * Update app settings
- * @param settingsData The settings data to update
- * @returns The updated settings
+ * Delete all notes for a given user
  */
-export const updateSettings = async (
-  settingsData: Partial<Settings>
-): Promise<Settings> => {
-  const settings = await getSettings();
+export const deleteNotesByUserId = async (userId: string): Promise<void> => {
+  const notes = await getNotes();
+  const filtered = notes.filter((n) => n.userId !== userId);
+  await writeData(NOTES_FILE, filtered);
+};
 
-  const updatedSettings: Settings = {
-    ...settings,
+// Per-user settings helpers (embedded on User)
+
+export const getUserSettings = async (
+  userId: string
+): Promise<User["settings"]> => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user.settings;
+};
+
+export const updateUserSettings = async (
+  userId: string,
+  settingsData: Partial<User["settings"]>
+): Promise<User["settings"]> => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const updatedSettings: User["settings"] = {
+    ...user.settings,
     ...settingsData,
   };
 
-  await writeData(SETTINGS_FILE, updatedSettings);
+  await saveUser({ ...user, settings: updatedSettings });
   return updatedSettings;
 };
 
 /**
- * Reset all data (delete all entries from JSON files)
- * Keeps settings and templates, but clears habits, notes, and counters
+ * Reset all user-embedded data and remove user-owned habits/notes.
  */
-export const resetAllData = async (): Promise<void> => {
-  await writeData(HABITS_FILE, []);
-  await writeData(NOTES_FILE, []);
-  await writeData(COUNTERS_FILE, []);
-  console.log("All data has been reset");
+export const resetUserData = async (userId: string): Promise<void> => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Remove user-owned habits
+  const habits = await getHabits();
+  const filteredHabits = habits.filter((h) => h.userId !== userId);
+  await writeData(HABITS_FILE, filteredHabits);
+
+  // Remove user-owned notes
+  const notes = await getNotes();
+  const filteredNotes = notes.filter((n) => n.userId !== userId);
+  await writeData(NOTES_FILE, filteredNotes);
+
+  // Reset embedded data on the user
+  const now = new Date().toISOString();
+  const resetUser: User = {
+    ...user,
+    settings: { enableRandomNote: true },
+    moods: [],
+    productivityLevels: [],
+    notesTemplates: [],
+    counters: [],
+    updatedAt: now,
+  };
+
+  await saveUser(resetUser);
 };
 
 /**
@@ -835,97 +883,6 @@ export const replaceAllCompletions = async (
   await writeData(HABITS_FILE, updatedHabits);
 };
 
-/**
- * Get all note templates
- * @returns Promise with all templates
- */
-export const getTemplates = async (): Promise<NoteTemplate[]> => {
-  return await readData<NoteTemplate[]>(NOTES_TEMPLATES_FILE);
-};
-
-/**
- * Get a template by ID
- * @param id The ID to find
- * @returns The template if found, null otherwise
- */
-export const getTemplateById = async (
-  id: string
-): Promise<NoteTemplate | null> => {
-  const templates = await getTemplates();
-  const template = templates.find((t) => t.id === id);
-  return template || null;
-};
-
-/**
- * Create a new template
- * @param templateData The template data
- * @returns The created template
- */
-export const createTemplate = async (
-  templateData: Omit<NoteTemplate, "id" | "createdAt" | "updatedAt">
-): Promise<NoteTemplate> => {
-  const templates = await getTemplates();
-  const now = new Date().toISOString();
-
-  const newTemplate: NoteTemplate = {
-    id: uuidv4(),
-    ...templateData,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  templates.push(newTemplate);
-  await writeData(NOTES_TEMPLATES_FILE, templates);
-  return newTemplate;
-};
-
-/**
- * Update a template
- * @param id The template ID to update
- * @param templateData The template data to update
- * @returns The updated template if successful, null if not found
- */
-export const updateTemplate = async (
-  id: string,
-  templateData: Partial<Omit<NoteTemplate, "id" | "createdAt" | "updatedAt">>
-): Promise<NoteTemplate | null> => {
-  const templates = await getTemplates();
-  const index = templates.findIndex((t) => t.id === id);
-
-  if (index === -1) {
-    return null;
-  }
-
-  const now = new Date().toISOString();
-  const updatedTemplate: NoteTemplate = {
-    ...templates[index],
-    ...templateData,
-    updatedAt: now,
-  };
-
-  templates[index] = updatedTemplate;
-  await writeData(NOTES_TEMPLATES_FILE, templates);
-  return updatedTemplate;
-};
-
-/**
- * Delete a template
- * @param id The template ID to delete
- * @returns Whether the deletion was successful
- */
-export const deleteTemplate = async (id: string): Promise<boolean> => {
-  const templates = await getTemplates();
-  const initialLength = templates.length;
-
-  const filteredTemplates = templates.filter((t) => t.id !== id);
-
-  if (filteredTemplates.length === initialLength) {
-    return false;
-  }
-
-  await writeData(NOTES_TEMPLATES_FILE, filteredTemplates);
-  return true;
-};
 
 // Generic CRUD operations for any data file
 
@@ -1032,6 +989,7 @@ export const dataService = {
   createHabit,
   updateHabit,
   deleteHabit,
+  deleteHabitsByUserId,
   getCompletions,
   getCompletionsByHabitId,
   getCompletionsByDate,
@@ -1044,18 +1002,11 @@ export const dataService = {
   saveNote,
   updateNote,
   deleteNote,
-  getSettings,
-  updateSettings,
-  resetAllData,
+  deleteNotesByUserId,
+  deleteUserById,
   calculateHabitAnalytics,
   replaceAllCompletions,
   updateHabitStreaks,
-  // Template methods
-  getTemplates,
-  getTemplateById,
-  createTemplate,
-  updateTemplate,
-  deleteTemplate,
 };
 
 // Initialize data on module load

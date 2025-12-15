@@ -1,10 +1,4 @@
-const API_BASE_URL = "http://localhost:5002/api";
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+import apiService from "./api";
 
 interface Record {
   id: string;
@@ -47,14 +41,10 @@ export class RecordsService {
    * @param date - Date in YYYY-MM-DD format
    */
   static async getDailyRecords(date: string): Promise<DailyRecords> {
-    const response = await fetch(`${API_BASE_URL}/records/daily/${date}`);
-    const result: ApiResponse<DailyRecords> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch daily records");
-    }
-
-    return result.data;
+    const res = await apiService.get<DailyRecords>(
+      `/records/daily/${date}`
+    );
+    return res.data;
   }
 
   /**
@@ -62,14 +52,10 @@ export class RecordsService {
    * @param startDate - Start date in YYYY-MM-DD format
    */
   static async getWeeklyRecords(startDate: string): Promise<WeeklyRecords> {
-    const response = await fetch(`${API_BASE_URL}/records/weekly/${startDate}`);
-    const result: ApiResponse<WeeklyRecords> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch weekly records");
-    }
-
-    return result.data;
+    const res = await apiService.get<WeeklyRecords>(
+      `/records/weekly/${startDate}`
+    );
+    return res.data;
   }
 
   /**
@@ -81,16 +67,10 @@ export class RecordsService {
     year: number,
     month: number
   ): Promise<MonthlyRecords> {
-    const response = await fetch(
-      `${API_BASE_URL}/records/monthly/${year}/${month}`
+    const res = await apiService.get<MonthlyRecords>(
+      `/records/monthly/${year}/${month}`
     );
-    const result: ApiResponse<MonthlyRecords> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch monthly records");
-    }
-
-    return result.data;
+    return res.data;
   }
 
   /**
@@ -98,14 +78,10 @@ export class RecordsService {
    * @param habitId - ID of the habit
    */
   static async getHabitRecords(habitId: string): Promise<Record[]> {
-    const response = await fetch(`${API_BASE_URL}/habits/${habitId}/records`);
-    const result: ApiResponse<Record[]> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to fetch habit records");
-    }
-
-    return result.data;
+    const res = await apiService.get<Record[]>(
+      `/habits/${habitId}/records`
+    );
+    return res.data;
   }
 
   /**
@@ -117,21 +93,11 @@ export class RecordsService {
     habitId: string,
     date: string
   ): Promise<Record> {
-    const response = await fetch(`${API_BASE_URL}/habits/${habitId}/complete`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ date }),
-    });
-
-    const result: ApiResponse<Record> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to mark habit as complete");
-    }
-
-    return result.data;
+    const res = await apiService.post<Record>(
+      `/habits/${habitId}/complete`,
+      { date }
+    );
+    return res.data;
   }
 
   /**
@@ -140,18 +106,9 @@ export class RecordsService {
    * @param date - Date in YYYY-MM-DD format
    */
   static async deleteCompletion(habitId: string, date: string): Promise<void> {
-    const response = await fetch(
-      `${API_BASE_URL}/habits/${habitId}/complete/${date}`,
-      {
-        method: "DELETE",
-      }
+    await apiService.delete<void>(
+      `/habits/${habitId}/complete/${date}`
     );
-
-    const result: ApiResponse<void> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to delete completion");
-    }
   }
 
   /**
@@ -163,20 +120,10 @@ export class RecordsService {
     habitId: string,
     date: string
   ): Promise<Record> {
-    const response = await fetch(`${API_BASE_URL}/completions/toggle`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ habitId, date }),
+    const res = await apiService.post<Record>("/completions/toggle", {
+      habitId,
+      date,
     });
-
-    const result: ApiResponse<Record> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.message || "Failed to toggle completion");
-    }
-
-    return result.data;
+    return res.data;
   }
 }

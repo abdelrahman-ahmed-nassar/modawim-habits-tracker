@@ -1,14 +1,19 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { NoteTemplate } from "@shared/types";
-import { dataService } from "../services/dataService";
+import type { AuthenticatedRequest } from "../types/auth";
+import { getUserById, saveUser } from "../services/dataService";
 
 /**
  * Get all note templates
  */
-export const getAllTemplates = async (req: Request, res: Response) => {
+export const getAllTemplates = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
-    const templates = await dataService.getAll<NoteTemplate>("notes_templates");
+    const user = await getUserById(req.user!.id);
+    const templates = user?.notesTemplates || [];
     return res.status(200).json({
       success: true,
       data: templates,
@@ -25,14 +30,15 @@ export const getAllTemplates = async (req: Request, res: Response) => {
 /**
  * Get template by ID
  */
-export const getTemplateById = async (req: Request, res: Response) => {
+export const getTemplateById = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   const { id } = req.params;
 
   try {
-    const template = await dataService.getById<NoteTemplate>(
-      "notes_templates",
-      id
-    );
+    const user = await getUserById(req.user!.id);
+    const template = user?.notesTemplates.find((t) => t.id === id);
     if (!template) {
       return res.status(404).json({
         success: false,
@@ -56,8 +62,19 @@ export const getTemplateById = async (req: Request, res: Response) => {
 /**
  * Create new template
  */
-export const createTemplate = async (req: Request, res: Response) => {
+export const createTemplate = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
+    const user = await getUserById(req.user!.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     const { name, template } = req.body;
     if (!name || !template) {
       return res.status(400).json({
@@ -74,7 +91,8 @@ export const createTemplate = async (req: Request, res: Response) => {
       updatedAt: new Date().toISOString(),
     };
 
-    await dataService.add("notes_templates", newTemplate);
+    const templates = user.notesTemplates || [];
+    await saveUser({ ...user, notesTemplates: [...templates, newTemplate] });
 
     return res.status(201).json({
       success: true,
@@ -92,14 +110,24 @@ export const createTemplate = async (req: Request, res: Response) => {
 /**
  * Update template
  */
-export const updateTemplate = async (req: Request, res: Response) => {
+export const updateTemplate = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   const { id } = req.params;
   const { name, template } = req.body;
 
   try {
-    const existingTemplate = await dataService.getById<NoteTemplate>(
-      "notes_templates",
-      id
+    const user = await getUserById(req.user!.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const existingTemplate = (user.notesTemplates || []).find(
+      (t) => t.id === id
     );
     if (!existingTemplate) {
       return res.status(404).json({
@@ -115,7 +143,11 @@ export const updateTemplate = async (req: Request, res: Response) => {
       updatedAt: new Date().toISOString(),
     };
 
-    await dataService.update("notes_templates", id, updatedTemplate);
+    const updatedTemplates = (user.notesTemplates || []).map((t) =>
+      t.id === id ? updatedTemplate : t
+    );
+
+    await saveUser({ ...user, notesTemplates: updatedTemplates });
 
     return res.status(200).json({
       success: true,
@@ -133,13 +165,23 @@ export const updateTemplate = async (req: Request, res: Response) => {
 /**
  * Delete template
  */
-export const deleteTemplate = async (req: Request, res: Response) => {
+export const deleteTemplate = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   const { id } = req.params;
 
   try {
-    const existingTemplate = await dataService.getById<NoteTemplate>(
-      "notes_templates",
-      id
+    const user = await getUserById(req.user!.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const existingTemplate = (user.notesTemplates || []).find(
+      (t) => t.id === id
     );
     if (!existingTemplate) {
       return res.status(404).json({
@@ -148,7 +190,10 @@ export const deleteTemplate = async (req: Request, res: Response) => {
       });
     }
 
-    await dataService.remove("notes_templates", id);
+    const updatedTemplates = (user.notesTemplates || []).filter(
+      (t) => t.id !== id
+    );
+    await saveUser({ ...user, notesTemplates: updatedTemplates });
 
     return res.status(200).json({
       success: true,

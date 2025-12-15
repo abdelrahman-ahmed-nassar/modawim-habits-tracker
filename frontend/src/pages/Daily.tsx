@@ -182,14 +182,6 @@ const Daily: React.FC = () => {
           },
         });
 
-        // Fetch daily note (might not exist)
-        try {
-          const note = await NotesService.getNoteByDate(formattedDate);
-          setDailyNote(note);
-        } catch {
-          // Note doesn't exist for this date, which is fine
-          setDailyNote(null);
-        }
       } catch (error) {
         console.error("Error fetching daily data:", error);
         toast.error("Failed to load daily data");
@@ -201,9 +193,26 @@ const Daily: React.FC = () => {
     },
     [formattedDate]
   );
+
+  const fetchDailyNote = useCallback(async () => {
+    try {
+      const note = await NotesService.getNoteByDate(formattedDate);
+      setDailyNote(note);
+    } catch {
+      // Note doesn't exist for this date or other error – just treat as empty
+      setDailyNote(null);
+    }
+  }, [formattedDate]);
   useEffect(() => {
     fetchDailyData();
   }, [fetchDailyData]);
+
+  // Lazy-load daily note only when the Notes tab is active
+  useEffect(() => {
+    if (activeTab === "notes") {
+      fetchDailyNote();
+    }
+  }, [activeTab, fetchDailyNote]);
   // Handle URL parameter changes (only when urlDate changes)
   useEffect(() => {
     if (urlDate) {
@@ -776,7 +785,7 @@ const Daily: React.FC = () => {
         <DailyNotes
           date={formattedDate}
           initialNote={dailyNote}
-          onNoteUpdate={() => fetchDailyData()}
+          onNoteUpdate={fetchDailyNote}
         />
       )}
     </div>

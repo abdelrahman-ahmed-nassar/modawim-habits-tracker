@@ -14,6 +14,7 @@ import settingsRoutes from "./routes/settingsRoutes";
 import optionsRoutes from "./routes/optionsRoutes";
 import templateRoutes from "./routes/templateRoutes";
 import counterRoutes from "./routes/counterRoutes";
+import authRoutes from "./routes/authRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import { applyPendingUpdate } from "./utils/updateApplier";
 
@@ -113,6 +114,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notes", noteRoutes);

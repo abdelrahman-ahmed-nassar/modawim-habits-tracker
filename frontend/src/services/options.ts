@@ -1,13 +1,4 @@
-import axios from "axios";
-
-const API_BASE_URL = "http://localhost:5002/api";
-
-// Types
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+import apiService from "./api";
 
 export interface MoodOption {
   label: string;
@@ -21,59 +12,51 @@ export interface ProductivityOption {
 
 // Moods API
 export const getMoods = async (): Promise<MoodOption[]> => {
-  const response = await axios.get<ApiResponse<MoodOption[]>>(
-    `${API_BASE_URL}/options/moods`
-  );
-  return response.data.data;
+  const res = await apiService.get<MoodOption[]>(`/options/moods`);
+  return res.data;
 };
 
 export const getMoodLabels = async (): Promise<string[]> => {
-  const response = await axios.get<ApiResponse<string[]>>(
-    `${API_BASE_URL}/options/moods?legacy=true`
-  );
-  return response.data.data;
+  const res = await apiService.get<string[]>(`/options/moods`, {
+    params: { legacy: "true" },
+  });
+  return res.data;
 };
 
 export const addMood = async (mood: string | MoodOption): Promise<void> => {
-  await axios.post<ApiResponse<void>>(`${API_BASE_URL}/options/moods`, {
-    mood,
-  });
+  await apiService.post<void>(`/options/moods`, { mood });
 };
 
 export const removeMood = async (mood: string): Promise<void> => {
-  await axios.delete<ApiResponse<void>>(
-    `${API_BASE_URL}/options/moods/${mood}`
-  );
+  await apiService.delete<void>(`/options/moods/${mood}`);
 };
 
 // Productivity Levels API
 export const getProductivityLevels = async (): Promise<
   ProductivityOption[]
 > => {
-  const response = await axios.get<ApiResponse<ProductivityOption[]>>(
-    `${API_BASE_URL}/options/productivity-levels`
+  const res = await apiService.get<ProductivityOption[]>(
+    `/options/productivity-levels`
   );
-  return response.data.data;
+  return res.data;
 };
 
 export const getProductivityLabels = async (): Promise<string[]> => {
-  const response = await axios.get<ApiResponse<string[]>>(
-    `${API_BASE_URL}/options/productivity-levels?legacy=true`
+  const res = await apiService.get<string[]>(
+    `/options/productivity-levels`,
+    { params: { legacy: "true" } }
   );
-  return response.data.data;
+  return res.data;
 };
 
 export const addProductivityLevel = async (
   level: string | ProductivityOption
 ): Promise<void> => {
-  await axios.post<ApiResponse<void>>(
-    `${API_BASE_URL}/options/productivity-levels`,
-    { level }
-  );
+  await apiService.post<void>(`/options/productivity-levels`, { level });
 };
 
 export const removeProductivityLevel = async (level: string): Promise<void> => {
-  await axios.delete<ApiResponse<void>>(
-    `${API_BASE_URL}/options/productivity-levels/${level}`
+  await apiService.delete<void>(
+    `/options/productivity-levels/${level}`
   );
 };

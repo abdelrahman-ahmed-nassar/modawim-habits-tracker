@@ -1,74 +1,59 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { asyncHandler } from "../middleware/errorHandler";
 import * as dataService from "../services/dataService";
-import { AppError } from "../middleware/errorHandler";
-import { Settings } from "../types/models";
+import type { AuthenticatedRequest } from "../types/auth";
+import type { UserSettings } from "@shared/types";
 
 /**
- * Get current settings
+ * Get current settings (per authenticated user)
  * @route GET /api/settings
  */
-export const getSettings = asyncHandler(async (req: Request, res: Response) => {
-  const settings = await dataService.getSettings();
-
-  res.status(200).json({
-    success: true,
-    data: settings,
-  });
-});
-
-/**
- * Reset all data (delete all entries from JSON files)
- * @route DELETE /api/settings/reset-data
- */
-export const resetAllData = asyncHandler(
-  async (req: Request, res: Response) => {
-    await dataService.resetAllData();
+export const getSettings = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+    const settings = await dataService.getUserSettings(userId);
 
     res.status(200).json({
       success: true,
-      message: "All data has been reset successfully",
+      data: settings,
     });
   }
 );
 
 /**
- * Update settings
+ * Update settings (for authenticated user)
  * @route PUT /api/settings
  */
 export const updateSettings = asyncHandler(
-  async (req: Request, res: Response) => {
-    const settingsData: Partial<Settings> = req.body;
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+    const settingsData: Partial<UserSettings> = req.body;
 
-    // Validate settings data
-    if (
-      settingsData.theme &&
-      !["light", "dark", "system"].includes(settingsData.theme)
-    ) {
-      throw new AppError(
-        "Invalid theme value. Must be 'light', 'dark', or 'system'",
-        400
-      );
-    }
-
-    if (
-      settingsData.notifications?.reminderTime &&
-      !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(
-        settingsData.notifications.reminderTime
-      )
-    ) {
-      throw new AppError(
-        "Invalid reminder time format. Must be in HH:MM format",
-        400
-      );
-    }
-
-    const updatedSettings = await dataService.updateSettings(settingsData);
+    const updatedSettings = await dataService.updateUserSettings(
+      userId,
+      settingsData
+    );
 
     res.status(200).json({
       success: true,
       data: updatedSettings,
       message: "Settings updated successfully",
+    });
+  }
+);
+
+/**
+ * Reset all user data (habits, notes, embedded settings/templates/counters/etc.)
+ * @route DELETE /api/settings/reset-data
+ */
+export const resetData = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+    await dataService.resetUserData(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "All user data has been reset successfully",
     });
   }
 );

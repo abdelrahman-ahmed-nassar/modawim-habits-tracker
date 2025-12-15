@@ -6,6 +6,8 @@ import {
 } from "@shared/types";
 import { ValidationError } from "../types/models";
 import * as optionsService from "../services/optionsService";
+import { getUserById } from "../services/dataService";
+import type { User } from "@shared/types";
 
 /**
  * Validates a habit creation DTO
@@ -169,8 +171,9 @@ export const validateDailyNote = async (
 
   // Validate mood if provided
   if (noteData.mood !== undefined) {
-    const moods = await optionsService.getMoods();
-    if (!moods.some((m) => m.label === noteData.mood)) {
+    const defaultUser = await getUserById("sample-user-id");
+    const moods = defaultUser?.moods || [];
+    if (moods.length > 0 && !moods.some((m) => m.label === noteData.mood)) {
       errors.push({
         field: "mood",
         message: "Invalid mood value",
@@ -180,8 +183,12 @@ export const validateDailyNote = async (
 
   // Validate productivity level if provided
   if (noteData.productivityLevel !== undefined) {
-    const levels = await optionsService.getProductivityLevels();
-    if (!levels.some((l) => l.label === noteData.productivityLevel)) {
+    const defaultUser = (await getUserById("sample-user-id")) as User | null;
+    const levels = defaultUser?.productivityLevels || [];
+    if (
+      levels.length > 0 &&
+      !levels.some((l) => l.label === noteData.productivityLevel)
+    ) {
       errors.push({
         field: "productivityLevel",
         message: "Invalid productivity level value",

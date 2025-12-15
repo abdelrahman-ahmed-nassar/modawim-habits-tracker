@@ -6,42 +6,26 @@ import {
   updateTemplate,
   deleteTemplate,
 } from "../controllers/templateController";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router: Router = Router();
 
-/**
- * @route   GET /api/templates
- * @desc    Get all templates
- * @access  Public
- */
+// All templates are per-user and require authentication
+router.use(authMiddleware);
+
+// GET /api/templates - Get all templates for current user
 router.get("/", getAllTemplates);
 
-/**
- * @route   GET /api/templates/:id
- * @desc    Get template by id
- * @access  Public
- */
+// GET /api/templates/:id - Get template by id for current user
 router.get("/:id", getTemplateById);
 
-/**
- * @route   POST /api/templates
- * @desc    Create new template
- * @access  Public
- */
+// POST /api/templates - Create new template for current user
 router.post("/", createTemplate);
 
-/**
- * @route   PUT /api/templates/:id
- * @desc    Update template
- * @access  Public
- */
+// PUT /api/templates/:id - Update template for current user
 router.put("/:id", updateTemplate);
 
-/**
- * @route   DELETE /api/templates/:id
- * @desc    Delete template
- * @access  Public
- */
+// DELETE /api/templates/:id - Delete template for current user
 router.delete("/:id", deleteTemplate);
 
 export default router;

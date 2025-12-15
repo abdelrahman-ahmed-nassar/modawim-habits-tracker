@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import MotivationalPopup from "../components/ui/MotivationalPopup";
 import Button from "../components/ui/Button";
+import { useEffect } from "react";
+import { SettingsService } from "../services/settings";
 
 /**
  * Demo page to test the Motivational Popup
@@ -8,8 +10,30 @@ import Button from "../components/ui/Button";
  */
 const MotivationalPopupDemo: React.FC = () => {
   const [showPopup, setShowPopup] = useState(false);
+  const [enableRandomNote, setEnableRandomNote] = useState(true);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await SettingsService.getSettings();
+        if (settings && typeof settings.enableRandomNote === "boolean") {
+          setEnableRandomNote(settings.enableRandomNote);
+          setShowPopup(settings.enableRandomNote);
+        } else {
+          setEnableRandomNote(true);
+          setShowPopup(true);
+        }
+      } catch (err) {
+        console.error("Failed to load settings", err);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const forceShowPopup = () => {
+    if (!enableRandomNote) {
+      return;
+    }
     setShowPopup(false);
     // Re-render the component to trigger the fetch
     setTimeout(() => {
@@ -85,7 +109,9 @@ const MotivationalPopupDemo: React.FC = () => {
       </div>
 
       {/* The popup component */}
-      {showPopup && <MotivationalPopup onClose={() => setShowPopup(false)} />}
+      {enableRandomNote && showPopup && (
+        <MotivationalPopup onClose={() => setShowPopup(false)} />
+      )}
     </div>
   );
 };

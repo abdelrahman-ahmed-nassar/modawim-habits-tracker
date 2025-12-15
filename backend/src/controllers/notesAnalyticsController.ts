@@ -3,16 +3,21 @@ import { AppError, asyncHandler } from "../middleware/errorHandler";
 import * as dataService from "../services/dataService";
 import * as optionsService from "../services/optionsService";
 import { isValidDateFormat } from "../utils/validation";
+import type { AuthenticatedRequest } from "../types/auth";
 
 /**
  * Get notes analytics overview
  * @route GET /api/notes/analytics/overview
  */
 export const getNotesAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
-    const notes = await dataService.getNotes();
-    const moodOptions = await optionsService.getMoods();
-    const productivityOptions = await optionsService.getProductivityLevels();
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+
+    const allNotes = await dataService.getNotes();
+    const notes = allNotes.filter((n) => n.userId === userId);
+    const moodOptions = await optionsService.getMoods(userId);
+    const productivityOptions =
+      await optionsService.getProductivityLevels(userId);
 
     // Create lookups for mood and productivity values
     const moodValueMap = new Map(moodOptions.map((m) => [m.label, m.value]));
@@ -202,9 +207,12 @@ export const getNotesAnalytics = asyncHandler(
  * @route GET /api/notes/analytics/mood-trends
  */
 export const getMoodTrends = asyncHandler(
-  async (req: Request, res: Response) => {
-    const notes = await dataService.getNotes();
-    const moodOptions = await optionsService.getMoods();
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+
+    const allNotes = await dataService.getNotes();
+    const notes = allNotes.filter((n) => n.userId === userId);
+    const moodOptions = await optionsService.getMoods(userId);
 
     // Create lookup for mood values
     const moodValueMap = new Map(moodOptions.map((m) => [m.label, m.value]));
@@ -264,11 +272,20 @@ export const getMoodTrends = asyncHandler(
  * @route GET /api/notes/analytics/productivity-correlation
  */
 export const getProductivityCorrelation = asyncHandler(
-  async (req: Request, res: Response) => {
-    const notes = await dataService.getNotes();
-    const habits = await dataService.getHabits();
-    const completions = await dataService.getCompletions();
-    const productivityOptions = await optionsService.getProductivityLevels();
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+
+    const allNotes = await dataService.getNotes();
+    const notes = allNotes.filter((n) => n.userId === userId);
+
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
+
+    const allCompletions = await dataService.getCompletions();
+    const habitIds = new Set(habits.map((h) => h.id));
+    const completions = allCompletions.filter((c) => habitIds.has(c.habitId));
+    const productivityOptions =
+      await optionsService.getProductivityLevels(userId);
 
     // Create lookup for productivity values
     const productivityValueMap = new Map(
@@ -389,7 +406,7 @@ export const getProductivityCorrelation = asyncHandler(
  * @route GET /api/notes/calendar/:year/:month
  */
 export const getNotesCalendar = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { year, month } = req.params;
 
     // Validate year and month
@@ -404,9 +421,13 @@ export const getNotesCalendar = asyncHandler(
     const monthFormatted = monthNum.toString().padStart(2, "0");
     const yearMonthPrefix = `${yearNum}-${monthFormatted}`;
 
-    const notes = await dataService.getNotes();
-    const moodOptions = await optionsService.getMoods();
-    const productivityOptions = await optionsService.getProductivityLevels();
+    const userId = req.user!.id;
+
+    const allNotes = await dataService.getNotes();
+    const notes = allNotes.filter((n) => n.userId === userId);
+    const moodOptions = await optionsService.getMoods(userId);
+    const productivityOptions =
+      await optionsService.getProductivityLevels(userId);
 
     // Create lookups for mood and productivity values
     const moodValueMap = new Map(moodOptions.map((m) => [m.label, m.value]));

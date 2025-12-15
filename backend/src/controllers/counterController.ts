@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import {
   Counter,
@@ -7,36 +7,25 @@ import {
   PatchCounterRequest,
 } from "@shared/types";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
-import { readData, writeData } from "../services/fileStorageService";
+import type { AuthenticatedRequest } from "../types/auth";
+import { getUserById, saveUser } from "../services/dataService";
 
-const COUNTERS_FILE = "counters.json";
-
-/**
- * Read counters from file
- */
-async function readCounters(): Promise<Counter[]> {
-  try {
-    return await readData<Counter[]>(COUNTERS_FILE);
-  } catch (error) {
-    // If file doesn't exist, return empty array
-    return [];
+const getUserOrThrow = async (userId: string) => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new AppError("User not found", 404);
   }
-}
-
-/**
- * Write counters to file
- */
-async function writeCounters(counters: Counter[]): Promise<void> {
-  await writeData(COUNTERS_FILE, counters);
-}
+  return user;
+};
 
 /**
  * Get all counters
  * @route GET /api/counters
  */
 export const getAllCounters = asyncHandler(
-  async (req: Request, res: Response) => {
-    const counters = await readCounters();
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await getUserOrThrow(req.user!.id);
+    const counters = user.counters || [];
 
     res.status(200).json({
       success: true,
@@ -50,9 +39,10 @@ export const getAllCounters = asyncHandler(
  * @route GET /api/counters/:id
  */
 export const getCounterById = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-    const counters = await readCounters();
+    const user = await getUserOrThrow(req.user!.id);
+    const counters = user.counters || [];
     const counter = counters.find((c) => c.id === id);
 
     if (!counter) {
@@ -71,7 +61,8 @@ export const getCounterById = asyncHandler(
  * @route POST /api/counters
  */
 export const createCounter = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await getUserOrThrow(req.user!.id);
     const counterData: CreateCounterRequest = req.body;
 
     // Validate counter data
@@ -83,7 +74,7 @@ export const createCounter = asyncHandler(
       throw new AppError("Counter goal must be a non-negative number", 400);
     }
 
-    const counters = await readCounters();
+    const counters = user.counters || [];
     const now = new Date().toISOString();
 
     const newCounter: Counter = {
@@ -96,8 +87,8 @@ export const createCounter = asyncHandler(
       updatedAt: now,
     };
 
-    counters.push(newCounter);
-    await writeCounters(counters);
+    const updatedCounters = [...counters, newCounter];
+    await saveUser({ ...user, counters: updatedCounters });
 
     res.status(201).json({
       success: true,
@@ -112,7 +103,8 @@ export const createCounter = asyncHandler(
  * @route PUT /api/counters/:id
  */
 export const updateCounter = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await getUserOrThrow(req.user!.id);
     const { id } = req.params;
     const updateData: UpdateCounterRequest = req.body;
 
@@ -125,7 +117,7 @@ export const updateCounter = asyncHandler(
       throw new AppError("Counter goal must be a non-negative number", 400);
     }
 
-    const counters = await readCounters();
+    const counters = user.counters || [];
     const counterIndex = counters.findIndex((c) => c.id === id);
 
     if (counterIndex === -1) {
@@ -142,8 +134,9 @@ export const updateCounter = asyncHandler(
       updatedAt: new Date().toISOString(),
     };
 
-    counters[counterIndex] = updatedCounter;
-    await writeCounters(counters);
+    const updatedCounters = [...counters];
+    updatedCounters[counterIndex] = updatedCounter;
+    await saveUser({ ...user, counters: updatedCounters });
 
     res.status(200).json({
       success: true,
@@ -158,7 +151,8 @@ export const updateCounter = asyncHandler(
  * @route PATCH /api/counters/:id/count
  */
 export const patchCounterCount = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await getUserOrThrow(req.user!.id);
     const { id } = req.params;
     const patchData: PatchCounterRequest = req.body;
 
@@ -170,17 +164,21 @@ export const patchCounterCount = asyncHandler(
       throw new AppError("Counter count cannot be negative", 400);
     }
 
-    const counters = await readCounters();
+    const counters = user.counters || [];
     const counterIndex = counters.findIndex((c) => c.id === id);
 
     if (counterIndex === -1) {
       throw new AppError(`Counter with ID ${id} not found`, 404);
     }
 
-    counters[counterIndex].currentCount = patchData.currentCount;
-    counters[counterIndex].updatedAt = new Date().toISOString();
+    const updatedCounters = [...counters];
+    updatedCounters[counterIndex] = {
+      ...updatedCounters[counterIndex],
+      currentCount: patchData.currentCount,
+      updatedAt: new Date().toISOString(),
+    };
 
-    await writeCounters(counters);
+    await saveUser({ ...user, counters: updatedCounters });
 
     res.status(200).json({
       success: true,
@@ -195,18 +193,19 @@ export const patchCounterCount = asyncHandler(
  * @route DELETE /api/counters/:id
  */
 export const deleteCounter = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await getUserOrThrow(req.user!.id);
     const { id } = req.params;
 
-    const counters = await readCounters();
+    const counters = user.counters || [];
     const counterIndex = counters.findIndex((c) => c.id === id);
 
     if (counterIndex === -1) {
       throw new AppError(`Counter with ID ${id} not found`, 404);
     }
 
-    counters.splice(counterIndex, 1);
-    await writeCounters(counters);
+    const updatedCounters = counters.filter((c) => c.id !== id);
+    await saveUser({ ...user, counters: updatedCounters });
 
     res.status(200).json({
       success: true,

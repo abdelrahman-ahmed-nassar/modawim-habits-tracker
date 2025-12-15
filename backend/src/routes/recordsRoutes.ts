@@ -1,15 +1,14 @@
 import express, { Router } from "express";
 import * as recordsController from "../controllers/recordsController";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router: Router = express.Router();
 
-// GET /api/records/daily/:date - Get all completions for specific date
+// All records routes are scoped to the authenticated user
+router.use(authMiddleware);
+
 router.get("/daily/:date", recordsController.getDailyRecords);
-
-// GET /api/records/weekly/:startDate - Get week's completion data
 router.get("/weekly/:startDate", recordsController.getWeeklyRecords);
-
-// GET /api/records/monthly/:year/:month - Get month's completion data
 router.get("/monthly/:year/:month", recordsController.getMonthlyRecords);
 
 export default router;

@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_BASE_URL = "http://localhost:5002/api";
+import apiService from "./api";
 
 interface AnalyticsOverview {
   totalHabits: number;
@@ -285,8 +283,8 @@ export class AnalyticsService {
    * Get overall analytics data
    */
   async getOverallAnalytics(): Promise<AnalyticsOverview> {
-    const response = await axios.get(`${API_BASE_URL}/analytics/overview`);
-    return response.data.data;
+    const res = await apiService.get<AnalyticsOverview>("/analytics/overview");
+    return res.data;
   }
 
   /**
@@ -294,10 +292,10 @@ export class AnalyticsService {
    * @param habitId - The ID of the habit
    */
   async getHabitAnalytics(habitId: string): Promise<HabitAnalytics> {
-    const response = await axios.get(
-      `${API_BASE_URL}/analytics/habits/${habitId}`
+    const res = await apiService.get<HabitAnalytics>(
+      `/analytics/habits/${habitId}`
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -309,10 +307,11 @@ export class AnalyticsService {
     habitId: string,
     period: string = "30days"
   ): Promise<EnhancedHabitAnalytics> {
-    const response = await axios.get(
-      `${API_BASE_URL}/analytics/habits/${habitId}?period=${period}`
+    const res = await apiService.get<EnhancedHabitAnalytics>(
+      `/analytics/habits/${habitId}`,
+      { params: { period } }
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -320,8 +319,10 @@ export class AnalyticsService {
    * @param date - The date in ISO format
    */
   async getDailyAnalytics(date: string): Promise<DailyAnalytics> {
-    const response = await axios.get(`${API_BASE_URL}/analytics/daily/${date}`);
-    return response.data.data;
+    const res = await apiService.get<DailyAnalytics>(
+      `/analytics/daily/${date}`
+    );
+    return res.data;
   }
 
   /**
@@ -329,10 +330,10 @@ export class AnalyticsService {
    * @param startDate - The start date in ISO format
    */
   async getWeeklyAnalytics(startDate: string): Promise<WeeklyAnalytics> {
-    const response = await axios.get(
-      `${API_BASE_URL}/analytics/weekly/${startDate}`
+    const res = await apiService.get<WeeklyAnalytics>(
+      `/analytics/weekly/${startDate}`
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -344,10 +345,10 @@ export class AnalyticsService {
     year: number,
     month: number
   ): Promise<MonthlyAnalytics> {
-    const response = await axios.get(
-      `${API_BASE_URL}/analytics/monthly/${year}/${month}`
+    const res = await apiService.get<MonthlyAnalytics>(
+      `/analytics/monthly/${year}/${month}`
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -355,10 +356,10 @@ export class AnalyticsService {
    * @param startDate - The start date in YYYY-MM-DD format
    */
   async getQuarterAnalytics(startDate: string): Promise<QuarterAnalytics> {
-    const response = await axios.get(
-      `${API_BASE_URL}/analytics/quarter/${startDate}`
+    const res = await apiService.get<QuarterAnalytics>(
+      `/analytics/quarter/${startDate}`
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -374,10 +375,11 @@ export class AnalyticsService {
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
 
-    const response = await axios.get(
-      `${API_BASE_URL}/notes/analytics/overview?${params.toString()}`
+    const res = await apiService.get<NotesAnalyticsOverview>(
+      `/notes/analytics/overview`,
+      { params: Object.fromEntries(params.entries()) }
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -396,10 +398,11 @@ export class AnalyticsService {
     if (endDate) params.append("endDate", endDate);
     params.append("period", period);
 
-    const response = await axios.get(
-      `${API_BASE_URL}/notes/analytics/mood-trends?${params.toString()}`
+    const res = await apiService.get<MoodTrends>(
+      `/notes/analytics/mood-trends`,
+      { params: Object.fromEntries(params.entries()) }
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -415,10 +418,11 @@ export class AnalyticsService {
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
 
-    const response = await axios.get(
-      `${API_BASE_URL}/notes/analytics/productivity-correlation?${params.toString()}`
+    const res = await apiService.get<ProductivityCorrelation>(
+      `/notes/analytics/productivity-correlation`,
+      { params: Object.fromEntries(params.entries()) }
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -427,10 +431,10 @@ export class AnalyticsService {
    * @param month - Month number (1-12)
    */
   async getNotesCalendar(year: number, month: number): Promise<NotesCalendar> {
-    const response = await axios.get(
-      `${API_BASE_URL}/notes/calendar/${year}/${month}`
+    const res = await apiService.get<NotesCalendar>(
+      `/notes/calendar/${year}/${month}`
     );
-    return response.data.data;
+    return res.data;
   }
 }
 

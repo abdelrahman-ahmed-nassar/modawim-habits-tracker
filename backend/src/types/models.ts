@@ -19,14 +19,7 @@ export interface CompletionRecordWithDetails extends CompletionRecord {
 
 export interface Settings {
   userId: string;
-  theme: "light" | "dark" | "system";
-  language: string;
-  notifications: {
-    enabled: boolean;
-    reminderTime: string;
-  };
-  reminderEnabled: boolean;
-  reminderTime: string;
+  enableRandomNote: boolean;
 }
 
 export interface ValidationError {

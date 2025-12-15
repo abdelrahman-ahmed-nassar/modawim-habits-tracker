@@ -1,12 +1,14 @@
 import { v4 as uuidv4 } from "uuid";
 import { Habit, CompletionRecord, DailyNote } from "@shared/types";
-import { Settings } from "../types/models";
 import {
   getTodayDateString,
   getDateDaysAgo,
   formatDateToString,
 } from "./dateUtils";
 import { writeData } from "../services/fileStorageService";
+
+// Default user id used for sample data in non-production setups
+const SAMPLE_USER_ID = "sample-user-id";
 
 /**
  * Generate sample habits
@@ -18,6 +20,7 @@ export const generateSampleHabits = (): Habit[] => {
   return [
     {
       id: uuidv4(),
+      userId: SAMPLE_USER_ID,
       name: "تمرين يومي",
       description: "على الأقل 30 دقيقة من النشاط البدني",
       tag: "صحة",
@@ -32,6 +35,7 @@ export const generateSampleHabits = (): Habit[] => {
     },
     {
       id: uuidv4(),
+      userId: SAMPLE_USER_ID,
       name: "قراءة كتاب",
       description: "قراءة 30 صفحة على الأقل",
       tag: "تعلم",
@@ -45,6 +49,7 @@ export const generateSampleHabits = (): Habit[] => {
     },
     {
       id: uuidv4(),
+      userId: SAMPLE_USER_ID,
       name: "مراجعة أسبوعية",
       description: "مراجعة الأهداف والتخطيط للأسبوع القادم",
       tag: "إنتاجية",
@@ -60,6 +65,7 @@ export const generateSampleHabits = (): Habit[] => {
     },
     {
       id: uuidv4(),
+      userId: SAMPLE_USER_ID,
       name: "شرب الماء",
       description: "شرب 2 لتر من الماء على الأقل",
       tag: "صحة",
@@ -73,6 +79,7 @@ export const generateSampleHabits = (): Habit[] => {
     },
     {
       id: uuidv4(),
+      userId: SAMPLE_USER_ID,
       name: "مراجعة الميزانية الشهرية",
       description: "مراجعة المصروفات وتحديث الميزانية",
       tag: "مالية",
@@ -177,6 +184,7 @@ export const generateSampleNotes = (days: number = 10): DailyNote[] => {
     if (Math.random() > 0.3) {
       notes.push({
         id: uuidv4(),
+        userId: SAMPLE_USER_ID,
         date: dateStr,
         content: `تدوينة عينة لتاريخ ${dateStr}. اليوم كان ${
           Math.random() > 0.5 ? "مُنتج" : "صعب"
@@ -188,24 +196,6 @@ export const generateSampleNotes = (days: number = 10): DailyNote[] => {
   }
 
   return notes;
-};
-
-/**
- * Generate default settings
- * @returns Settings object
- */
-export const generateDefaultSettings = (): Settings => {
-  return {
-    userId: uuidv4(),
-    theme: "system",
-    language: "ar",
-    notifications: {
-      enabled: true,
-      reminderTime: "09:00",
-    },
-    reminderEnabled: true,
-    reminderTime: "20:00",
-  };
 };
 
 /**
@@ -237,10 +227,6 @@ export const loadSampleData = async (): Promise<void> => {
     // Generate notes
     const notes = generateSampleNotes();
     await writeData("notes.json", notes);
-
-    // Generate settings
-    const settings = generateDefaultSettings();
-    await writeData("settings.json", settings);
 
     console.log("Sample data loaded successfully");
   } catch (error) {

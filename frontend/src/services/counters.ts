@@ -1,19 +1,17 @@
-import axios from "axios";
 import {
   Counter,
   CreateCounterRequest,
   UpdateCounterRequest,
 } from "@shared/types";
-
-const API_BASE_URL = "http://localhost:5002/api";
+import apiService from "./api";
 
 class CountersService {
   /**
    * Get all counters
    */
   async getAllCounters(): Promise<Counter[]> {
-    const response = await axios.get(`${API_BASE_URL}/counters`);
-    return response.data.data;
+    const res = await apiService.get<Counter[]>("/counters");
+    return res.data;
   }
 
   /**
@@ -21,8 +19,8 @@ class CountersService {
    * @param id - The ID of the counter
    */
   async getCounter(id: string): Promise<Counter> {
-    const response = await axios.get(`${API_BASE_URL}/counters/${id}`);
-    return response.data.data;
+    const res = await apiService.get<Counter>(`/counters/${id}`);
+    return res.data;
   }
 
   /**
@@ -30,8 +28,8 @@ class CountersService {
    * @param counter - The counter data
    */
   async createCounter(counter: CreateCounterRequest): Promise<Counter> {
-    const response = await axios.post(`${API_BASE_URL}/counters`, counter);
-    return response.data.data;
+    const res = await apiService.post<Counter>("/counters", counter);
+    return res.data;
   }
 
   /**
@@ -43,8 +41,11 @@ class CountersService {
     id: string,
     counter: UpdateCounterRequest
   ): Promise<Counter> {
-    const response = await axios.put(`${API_BASE_URL}/counters/${id}`, counter);
-    return response.data.data;
+    const res = await apiService.put<Counter>(
+      `/counters/${id}`,
+      counter
+    );
+    return res.data;
   }
 
   /**
@@ -53,10 +54,11 @@ class CountersService {
    * @param currentCount - The new count value
    */
   async patchCounterCount(id: string, currentCount: number): Promise<Counter> {
-    const response = await axios.patch(`${API_BASE_URL}/counters/${id}/count`, {
-      currentCount,
-    });
-    return response.data.data;
+    const res = await apiService.patch<Counter>(
+      `/counters/${id}/count`,
+      { currentCount }
+    );
+    return res.data;
   }
 
   /**
@@ -82,7 +84,7 @@ class CountersService {
    * @param id - The ID of the counter
    */
   async deleteCounter(id: string): Promise<void> {
-    await axios.delete(`${API_BASE_URL}/counters/${id}`);
+    await apiService.delete<void>(`/counters/${id}`);
   }
 }
 

@@ -1,33 +1,37 @@
-import { readData, writeData } from "./fileStorageService";
 import { AppError } from "../middleware/errorHandler";
+import type {
+  MoodOption,
+  ProductivityLevelOption,
+  User,
+} from "@shared/types";
+import { getUserById, saveUser } from "./dataService";
 
-const MOODS_FILE = "moods.json";
-const PRODUCTIVITY_LEVELS_FILE = "productivity_levels.json";
-
-export interface MoodOption {
-  label: string;
-  value: number;
-}
-
-export interface ProductivityOption {
-  label: string;
-  value: number;
-}
-
-export const getMoods = async (): Promise<MoodOption[]> => {
-  return await readData<MoodOption[]>(MOODS_FILE);
+const getUserOrThrow = async (userId: string): Promise<User> => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+  return user;
 };
 
-export const getMoodLabels = async (): Promise<string[]> => {
-  const moods = await getMoods();
+export const getMoods = async (userId: string): Promise<MoodOption[]> => {
+  const user = await getUserOrThrow(userId);
+  return user.moods || [];
+};
+
+export const getMoodLabels = async (userId: string): Promise<string[]> => {
+  const moods = await getMoods(userId);
   return moods.map((mood) => mood.label);
 };
 
 export const addMood = async (
+  userId: string,
   mood: string | MoodOption
 ): Promise<MoodOption[]> => {
-  const moods = await getMoods();
-  const moodObj =
+  const user = await getUserOrThrow(userId);
+  const moods = user.moods || [];
+
+  const moodObj: MoodOption =
     typeof mood === "string"
       ? {
           label: mood,
@@ -40,39 +44,49 @@ export const addMood = async (
     throw new AppError("Mood already exists", 400);
   }
 
-  moods.push(moodObj);
-  await writeData(MOODS_FILE, moods);
-  return moods;
+  const updatedMoods = [...moods, moodObj];
+  await saveUser({ ...user, moods: updatedMoods });
+  return updatedMoods;
 };
 
-export const removeMood = async (moodLabel: string): Promise<MoodOption[]> => {
-  const moods = await getMoods();
+export const removeMood = async (
+  userId: string,
+  moodLabel: string
+): Promise<MoodOption[]> => {
+  const user = await getUserOrThrow(userId);
+  const moods = user.moods || [];
   const filteredMoods = moods.filter((m) => m.label !== moodLabel);
 
   if (filteredMoods.length === moods.length) {
     throw new AppError("Mood not found", 404);
   }
 
-  await writeData(MOODS_FILE, filteredMoods);
+  await saveUser({ ...user, moods: filteredMoods });
   return filteredMoods;
 };
 
-export const getProductivityLevels = async (): Promise<
-  ProductivityOption[]
-> => {
-  return await readData<ProductivityOption[]>(PRODUCTIVITY_LEVELS_FILE);
+export const getProductivityLevels = async (
+  userId: string
+): Promise<ProductivityLevelOption[]> => {
+  const user = await getUserOrThrow(userId);
+  return user.productivityLevels || [];
 };
 
-export const getProductivityLabels = async (): Promise<string[]> => {
-  const levels = await getProductivityLevels();
+export const getProductivityLabels = async (
+  userId: string
+): Promise<string[]> => {
+  const levels = await getProductivityLevels(userId);
   return levels.map((level) => level.label);
 };
 
 export const addProductivityLevel = async (
-  level: string | ProductivityOption
-): Promise<ProductivityOption[]> => {
-  const levels = await getProductivityLevels();
-  const levelObj =
+  userId: string,
+  level: string | ProductivityLevelOption
+): Promise<ProductivityLevelOption[]> => {
+  const user = await getUserOrThrow(userId);
+  const levels = user.productivityLevels || [];
+
+  const levelObj: ProductivityLevelOption =
     typeof level === "string"
       ? {
           label: level,
@@ -85,21 +99,23 @@ export const addProductivityLevel = async (
     throw new AppError("Productivity level already exists", 400);
   }
 
-  levels.push(levelObj);
-  await writeData(PRODUCTIVITY_LEVELS_FILE, levels);
-  return levels;
+  const updatedLevels = [...levels, levelObj];
+  await saveUser({ ...user, productivityLevels: updatedLevels });
+  return updatedLevels;
 };
 
 export const removeProductivityLevel = async (
+  userId: string,
   levelLabel: string
-): Promise<ProductivityOption[]> => {
-  const levels = await getProductivityLevels();
+): Promise<ProductivityLevelOption[]> => {
+  const user = await getUserOrThrow(userId);
+  const levels = user.productivityLevels || [];
   const filteredLevels = levels.filter((l) => l.label !== levelLabel);
 
   if (filteredLevels.length === levels.length) {
     throw new AppError("Productivity level not found", 404);
   }
 
-  await writeData(PRODUCTIVITY_LEVELS_FILE, filteredLevels);
+  await saveUser({ ...user, productivityLevels: filteredLevels });
   return filteredLevels;
 };

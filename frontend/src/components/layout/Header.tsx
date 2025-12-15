@@ -1,7 +1,8 @@
-import { Menu } from "lucide-react";
+import { Menu, UserCircle } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
 import { format } from "date-fns";
 import { getArabicDayName, getArabicMonthName } from "../../utils/dateUtils";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -47,6 +48,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             {currentDate}
           </span>
           <ThemeToggle />
+          <Link
+            to="/profile"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            aria-label="الملف الشخصي"
+          >
+            <UserCircle className="w-5 h-5" />
+            <span className="hidden sm:inline">الملف الشخصي</span>
+          </Link>
         </div>
       </div>
     </header>

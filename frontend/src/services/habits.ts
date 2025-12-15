@@ -1,7 +1,5 @@
-import axios from "axios";
 import { Habit } from "@shared/types/habit";
-
-const API_BASE_URL = "http://localhost:5002/api";
+import apiService from "./api";
 
 interface CreateHabitRequest {
   name: string;
@@ -30,10 +28,10 @@ class HabitsService {
    * @param includeInactive - Whether to include inactive habits (defaults to false)
    */
   async getAllHabits(includeInactive: boolean = false): Promise<Habit[]> {
-    const response = await axios.get(
-      `${API_BASE_URL}/habits${includeInactive ? "?active=all" : ""}`
+    const res = await apiService.get<Habit[]>(
+      `/habits${includeInactive ? "?active=all" : ""}`
     );
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -41,8 +39,8 @@ class HabitsService {
    * @param id - The ID of the habit
    */
   async getHabit(id: string): Promise<Habit> {
-    const response = await axios.get(`${API_BASE_URL}/habits/${id}`);
-    return response.data.data;
+    const res = await apiService.get<Habit>(`/habits/${id}`);
+    return res.data;
   }
 
   /**
@@ -50,8 +48,8 @@ class HabitsService {
    * @param habit - The habit data
    */
   async createHabit(habit: CreateHabitRequest): Promise<Habit> {
-    const response = await axios.post(`${API_BASE_URL}/habits`, habit);
-    return response.data.data;
+    const res = await apiService.post<Habit>("/habits", habit);
+    return res.data;
   }
 
   /**
@@ -60,8 +58,8 @@ class HabitsService {
    * @param habit - The updated habit data
    */
   async updateHabit(id: string, habit: UpdateHabitRequest): Promise<Habit> {
-    const response = await axios.put(`${API_BASE_URL}/habits/${id}`, habit);
-    return response.data.data;
+    const res = await apiService.put<Habit>(`/habits/${id}`, habit);
+    return res.data;
   }
 
   /**
@@ -69,7 +67,7 @@ class HabitsService {
    * @param id - The ID of the habit
    */
   async deleteHabit(id: string): Promise<void> {
-    await axios.delete(`${API_BASE_URL}/habits/${id}`);
+    await apiService.delete<void>(`/habits/${id}`);
   }
 
   /**
@@ -77,8 +75,8 @@ class HabitsService {
    * @param id - The ID of the habit
    */
   async getHabitRecords(id: string): Promise<HabitRecord[]> {
-    const response = await axios.get(`${API_BASE_URL}/habits/${id}/records`);
-    return response.data.data;
+    const res = await apiService.get<HabitRecord[]>(`/habits/${id}/records`);
+    return res.data;
   }
 
   /**
@@ -87,10 +85,10 @@ class HabitsService {
    * @param date - The date in ISO format
    */
   async markHabitComplete(id: string, date: string): Promise<HabitRecord> {
-    const response = await axios.post(`${API_BASE_URL}/habits/${id}/complete`, {
+    const res = await apiService.post<HabitRecord>(`/habits/${id}/complete`, {
       date,
     });
-    return response.data.data;
+    return res.data;
   }
 
   /**
@@ -99,7 +97,7 @@ class HabitsService {
    * @param date - The date in ISO format
    */
   async deleteHabitCompletion(id: string, date: string): Promise<void> {
-    await axios.delete(`${API_BASE_URL}/habits/${id}/complete/${date}`);
+    await apiService.delete<void>(`/habits/${id}/complete/${date}`);
   }
 
   /**
@@ -107,8 +105,8 @@ class HabitsService {
    * @param id - The ID of the habit
    */
   async archiveHabit(id: string): Promise<Habit> {
-    const response = await axios.post(`${API_BASE_URL}/habits/${id}/archive`);
-    return response.data.data;
+    const res = await apiService.post<Habit>(`/habits/${id}/archive`);
+    return res.data;
   }
 
   /**
@@ -116,16 +114,16 @@ class HabitsService {
    * @param id - The ID of the habit
    */
   async restoreHabit(id: string): Promise<Habit> {
-    const response = await axios.post(`${API_BASE_URL}/habits/${id}/restore`);
-    return response.data.data;
+    const res = await apiService.post<Habit>(`/habits/${id}/restore`);
+    return res.data;
   }
 
   /**
    * Get a random habit
    */
   async getRandomHabit(): Promise<Habit> {
-    const response = await axios.get(`${API_BASE_URL}/habits/random/pick`);
-    return response.data.data;
+    const res = await apiService.get<Habit>("/habits/random/pick");
+    return res.data;
   }
 
   /**
@@ -135,11 +133,11 @@ class HabitsService {
    */
   async syncAnalytics(habitId?: string): Promise<Habit | Habit[]> {
     const url = habitId
-      ? `${API_BASE_URL}/habits/${habitId}/sync-analytics`
-      : `${API_BASE_URL}/habits/sync-analytics`;
+      ? `/habits/${habitId}/sync-analytics`
+      : "/habits/sync-analytics";
 
-    const response = await axios.post(url);
-    return response.data.data;
+    const res = await apiService.post<Habit | Habit[]>(url);
+    return res.data;
   }
 
   /**
@@ -147,10 +145,10 @@ class HabitsService {
    * @param habitIds - Array of habit IDs in desired order
    */
   async reorderHabits(habitIds: string[]): Promise<Habit[]> {
-    const response = await axios.put(`${API_BASE_URL}/habits/reorder`, {
+    const res = await apiService.put<Habit[]>("/habits/reorder", {
       habitIds,
     });
-    return response.data.data;
+    return res.data;
   }
 }
 

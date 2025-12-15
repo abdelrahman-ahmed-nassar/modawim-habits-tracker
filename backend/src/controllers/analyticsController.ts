@@ -20,17 +20,23 @@ import {
   formatDateToString,
 } from "../utils/dateUtils";
 import * as analyticsService from "../services/analyticsService";
+import type { AuthenticatedRequest } from "../types/auth";
 
 /**
  * Get overall analytics and trends
  * @route GET /api/analytics/overview
  */
 export const getOverallAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
-    // Get all habits and completions
-    const habits = await dataService.getHabits();
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabits = habits.filter((h) => h.isActive);
-    const completions = await dataService.getCompletions();
+
+    const allCompletions = await dataService.getCompletions();
+    const habitIds = new Set(habits.map((h) => h.id));
+    const completions = allCompletions.filter((c) => habitIds.has(c.habitId));
 
     // Calculate overall stats - only count active habits in the total
     const totalHabits = activeHabits.length; // Changed to only count active habits
@@ -162,7 +168,7 @@ export const getOverallAnalytics = asyncHandler(
  * @route GET /api/analytics/habits/:id
  */
 export const getHabitAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const { period = "30days" } = req.query;
 
@@ -185,7 +191,7 @@ export const getHabitAnalytics = asyncHandler(
     // Get habit and its completions
     const habit = await dataService.getHabitById(id);
 
-    if (!habit) {
+    if (!habit || habit.userId !== req.user!.id) {
       throw new AppError(`Habit with ID ${id} not found`, 404);
     }
 
@@ -314,7 +320,7 @@ export const getHabitAnalytics = asyncHandler(
  * @route GET /api/analytics/daily/:date
  */
 export const getDailyAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { date } = req.params;
 
     // Validate date format
@@ -322,10 +328,15 @@ export const getDailyAnalytics = asyncHandler(
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
     }
 
-    // Get all habits and completions for this date - ensure we only use active habits
-    const habits = await dataService.getHabits();
+    const userId = req.user!.id;
+
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabits = habits.filter((h) => h.isActive);
-    const completions = await dataService.getCompletionsByDate(date);
+
+    const allCompletions = await dataService.getCompletionsByDate(date);
+    const habitIds = new Set(habits.map((h) => h.id));
+    const completions = allCompletions.filter((c) => habitIds.has(c.habitId));
 
     // Only consider habits created before or on this date
     const relevantHabits = activeHabits.filter(
@@ -434,7 +445,7 @@ export const getDailyAnalytics = asyncHandler(
  * @route GET /api/analytics/weekly/:startDate
  */
 export const getWeeklyAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { startDate } = req.params;
 
     // Validate date format
@@ -453,9 +464,12 @@ export const getWeeklyAnalytics = asyncHandler(
     // Get date range - should be exactly 7 days
     const dateRange = getDatesBetween(startDate, endDate);
 
-    // Get habits and completions
-    const habits = await dataService.getHabits();
+    const userId = req.user!.id;
+
+    const allHabits = await dataService.getHabits();
+    const habits = allHabits.filter((h) => h.userId === userId);
     const activeHabits = habits.filter((h) => h.isActive);
+
     const allCompletions = await dataService.getCompletions();
 
     // Calculate daily completion rates
@@ -523,7 +537,7 @@ export const getWeeklyAnalytics = asyncHandler(
  * @route GET /api/analytics/monthly/:year/:month
  */
 export const getMonthlyAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { year, month } = req.params;
 
     // Validate year and month
@@ -550,9 +564,12 @@ export const getMonthlyAnalytics = asyncHandler(
       // Get date range for the month
       const dateRange = getDatesBetween(startDateStr, endDateStr);
 
-      // Get habits and completions - ensure we only use active habits
-      const habits = await dataService.getHabits();
+      const userId = req.user!.id;
+
+      const allHabits = await dataService.getHabits();
+      const habits = allHabits.filter((h) => h.userId === userId);
       const activeHabits = habits.filter((h) => h.isActive);
+
       const allCompletions = await dataService.getCompletions();
 
       // Filter completions within month
@@ -750,7 +767,7 @@ export const getMonthlyAnalytics = asyncHandler(
  * @route GET /api/analytics/quarter/:startDate
  */
 export const getQuarterAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { startDate } = req.params;
 
     // Validate date format
@@ -768,9 +785,12 @@ export const getQuarterAnalytics = asyncHandler(
       // Get date range for the quarter (91 days)
       const dateRange = getDatesBetween(startDate, endDate);
 
-      // Get habits and completions
-      const habits = await dataService.getHabits();
+      const userId = req.user!.id;
+
+      const allHabits = await dataService.getHabits();
+      const habits = allHabits.filter((h) => h.userId === userId);
       const activeHabits = habits.filter((h) => h.isActive);
+
       const allCompletions = await dataService.getCompletions();
 
       // Filter completions within quarter range
@@ -838,11 +858,12 @@ export const getQuarterAnalytics = asyncHandler(
  * @route GET /api/analytics/habits
  */
 export const getAllHabitsAnalytics = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { period = "30days" } = req.query;
 
     const data = await analyticsService.calculateAllHabitsAnalytics(
-      period as string
+      period as string,
+      req.user!.id
     );
 
     res.status(200).json({

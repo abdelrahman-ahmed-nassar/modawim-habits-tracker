@@ -1,7 +1,11 @@
 import express, { Router } from "express";
 import * as optionsController from "../controllers/optionsController";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router: Router = express.Router();
+
+// All options are per-user and require authentication
+router.use(authMiddleware);
 
 // Mood routes
 router.get("/moods", optionsController.getMoods);

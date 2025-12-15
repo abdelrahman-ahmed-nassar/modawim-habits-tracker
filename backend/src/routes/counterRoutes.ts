@@ -1,7 +1,11 @@
 import express, { Router } from "express";
 import * as counterController from "../controllers/counterController";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router: Router = express.Router();
+
+// All counters are per-user and require authentication
+router.use(authMiddleware);
 
 // GET /api/counters - Get all counters
 router.get("/", counterController.getAllCounters);

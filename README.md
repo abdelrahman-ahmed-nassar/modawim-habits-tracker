@@ -68,7 +68,7 @@ cd backend
 pnpm run dev
 ```
 
-Server runs on http://localhost:5000
+Server runs on `http://localhost:5002` by default.
 
 #### Frontend
 
@@ -138,55 +138,65 @@ modawim-habits-tracker/
 └── deploy-release.bat # GitHub Release deployment
 ```
 
-## 🔌 API Endpoints
+## 🔌 API & Authentication (overview)
 
-### Habits
+The app now uses **JWT auth** and per-user scoping.
 
-- `GET /api/habits` - Get all habits
-- `POST /api/habits` - Create new habit
-- `PUT /api/habits/:id` - Update habit
-- `DELETE /api/habits/:id` - Delete habit
-- `POST /api/habits/:id/archive` - Archive a habit
-- `POST /api/habits/:id/restore` - Restore a habit
+- `POST /api/auth/register` – register with `{ email, password }` → `{ user, token }`
+- `POST /api/auth/login` – login with `{ email, password }` → `{ user, token }`
+- `GET /api/auth/me` – get current user
 
-### Completions
+All other API endpoints (habits, notes, analytics, completions, records, options, settings, etc.) require:
 
-- `GET /api/habits/:id/records` - Get completion records
-- `POST /api/completions` - Mark habit complete
-- `DELETE /api/completions/:id` - Remove completion
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
 
-### Notes & Journal
+and operate **only on data belonging to that user**.
 
-- `GET /api/notes` - Get all notes
-- `POST /api/notes` - Create note
-- `PUT /api/notes/:id` - Update note
-- `DELETE /api/notes/:id` - Delete note
-
-### Analytics
-
-- `GET /api/analytics` - Get habit analytics
-- `GET /api/analytics/notes` - Get journal analytics
-
-### Settings
-
-- `GET /api/settings` - Get app settings
-- `PUT /api/settings` - Update settings
-
-See `backend/API-ROUTES.md` for complete documentation.
+See `backend/API-ROUTES.md` for the full, detailed route list.
 
 ## 💾 Data Storage
 
-All data is stored locally in JSON files:
+All data is stored locally in JSON files under `backend/data/`.
 
-```
-backend/data/
-├── habits.json          # Habit definitions
-├── notes.json           # Journal entries
-├── moods.json           # Mood options
-├── productivity_levels.json
-├── tags.json
-└── settings.json
-```
+Primary collections:
+
+- `users.json` – users with embedded:
+  - `settings`
+  - `moods`
+  - `productivityLevels`
+  - `notesTemplates`
+  - `counters`
+- `habits.json` – habit definitions, each with `userId`
+- `notes.json` – journal entries / daily notes, each with `userId`
+
+Legacy / transitional files (kept for backwards compatibility, being migrated into `users.json`):
+
+- `settings.json`
+- `moods.json`
+- `productivity_levels.json`
+- `notes_templates.json`
+- `counters.json`
+- `tags.json`
+
+New code should generally prefer reading/writing via the `users`, `habits`, and `notes` collections.
+
+## ✅ Manual Testing Checklist
+
+To quickly verify the per-user auth & data model:
+
+1. **Register & login**
+   - Call `POST /api/auth/register` from the frontend login/register form.
+   - Confirm you receive a token and can access `/` and the analytics pages.
+2. **Per-user data**
+   - Create some habits and daily notes while logged in as User A.
+   - Log out, register/login as User B, and verify you **don’t** see User A’s data.
+3. **Logout protection**
+   - Click the logout button in the header.
+   - Try navigating directly to `/` or `/daily` – you should be redirected to `/login`.
+4. **Analytics visibility**
+   - With multiple users, ensure analytics endpoints (`/api/analytics/*`, `/api/notes/analytics/*`) only reflect the current user’s habits and notes.
 
 ## 🌐 Landing Page
 

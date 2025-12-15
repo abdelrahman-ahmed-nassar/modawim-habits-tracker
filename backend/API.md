@@ -62,7 +62,6 @@ curl http://localhost:5002/api/habits
       "description": "إن قرآن الفجر كان مشهودا",
       "tag": "الصلوات",
       "repetition": "daily",
-      "goalType": "streak",
       "goalValue": 70,
       "currentStreak": 1,
       "bestStreak": 5,
@@ -94,7 +93,6 @@ GET /api/habits/:id
     "tag": "string",
     "repetition": "daily|weekly|monthly",
     "specificDays": [0, 1, 2, 3, 4, 5, 6],
-    "goalType": "streak|counter",
     "goalValue": number,
     "currentStreak": number,
     "bestStreak": number,
@@ -120,8 +118,7 @@ POST /api/habits
   "description": "string",
   "tag": "string",
   "repetition": "daily|weekly|monthly",
-  "specificDays": [0, 1, 2, 3, 4, 5, 6],
-  "goalType": "streak|counter",
+  "specificDays": [0, 1, 2, 3, 4, 5, 6]
   "goalValue": number,
   "motivationNote": "string"
 }
@@ -132,7 +129,7 @@ POST /api/habits
 ```bash
 curl -X POST http://localhost:5002/api/habits \
   -H "Content-Type: application/json" \
-  -d '{"name": "Test Habit", "description": "A test habit created via API", "tag": "Test", "repetition": "daily", "goalType": "streak", "goalValue": 1}'
+  -d '{"name": "Test Habit", "description": "A test habit created via API", "tag": "Test", "repetition": "daily", "goalValue": 1}'
 ```
 
 **Response:**
@@ -146,7 +143,6 @@ curl -X POST http://localhost:5002/api/habits \
     "description": "A test habit created via API",
     "tag": "Test",
     "repetition": "daily",
-    "goalType": "streak",
     "goalValue": 1,
     "currentStreak": 0,
     "bestStreak": 0,
@@ -173,8 +169,7 @@ PUT /api/habits/:id
   "description": "string",
   "tag": "string",
   "repetition": "daily|weekly|monthly",
-  "specificDays": [0, 1, 2, 3, 4, 5, 6],
-  "goalType": "streak|counter",
+  "specificDays": [0, 1, 2, 3, 4, 5, 6]
   "goalValue": number,
   "motivationNote": "string"
 }
@@ -185,7 +180,7 @@ PUT /api/habits/:id
 ```bash
 curl -X PUT http://localhost:5002/api/habits/water-1 \
   -H "Content-Type: application/json" \
-  -d '{"name": "🥤 شرب المياه", "description": "Drink 8 glasses of water daily - Updated", "tag": "النمو", "repetition": "daily", "goalType": "counter", "goalValue": 8}'
+  -d '{"name": "🥤 شرب المياه", "description": "Drink 8 glasses of water daily - Updated", "tag": "النمو", "repetition": "daily", "goalValue": 8}'
 ```
 
 **Response:**
@@ -199,7 +194,6 @@ curl -X PUT http://localhost:5002/api/habits/water-1 \
     "description": "Drink 8 glasses of water daily - Updated",
     "tag": "النمو",
     "repetition": "daily",
-    "goalType": "counter",
     "goalValue": 8,
     "currentStreak": 1,
     "bestStreak": 1,
@@ -875,8 +869,7 @@ curl http://localhost:5002/api/records/daily/2025-05-29
         "completedAt": "2025-05-27T10:49:16.160Z",
         "habitName": "🕌 العصر فالمسجد",
         "habitTag": "الصلوات",
-        "goalType": "streak",
-        "goalValue": 1
+          "goalValue": 1
       },
       {
         "id": "44ec4358-462a-4a5d-8450-55367848dd1a",
@@ -886,8 +879,7 @@ curl http://localhost:5002/api/records/daily/2025-05-29
         "completedAt": "2025-05-27T10:49:22.957Z",
         "habitName": "🕌 الفجر فالمسجد",
         "habitTag": "الصلوات",
-        "goalType": "streak",
-        "goalValue": 70
+          "goalValue": 70
       }
       // More records...
     ],

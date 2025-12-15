@@ -3,7 +3,6 @@ import { format } from "date-fns";
 import {
   Home,
   Calendar,
-  BarChart2,
   Settings,
   BookOpen,
   Heart,
@@ -29,7 +28,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, onClose }) => {
     { path: "/weekly", icon: Calendar, label: "الأسبوعي" },
     { path: "/monthly", icon: Calendar, label: "الشهري" },
     { path: `/yearly/${currentYear}`, icon: Calendar, label: "السنوي" },
-    { path: "/analytics", icon: BarChart2, label: "التحليلات" },
     { path: "/notes", icon: BookOpen, label: "اليوميات" },
     { path: "/counters", icon: Calculator, label: "العدادات" },
     { path: "/settings", icon: Settings, label: "الإعدادات" },

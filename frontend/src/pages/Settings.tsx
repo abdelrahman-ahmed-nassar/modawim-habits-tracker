@@ -9,7 +9,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import axios from "axios";
+import apiService from "../services/api";
+import { SettingsService } from "../services/settings";
 import PageContainer from "../components/layout/PageContainer";
 import HabitsManager from "../components/settings/HabitsManager";
 import MoodsManager from "../components/settings/MoodsManager";
@@ -38,6 +39,7 @@ const Settings: React.FC = () => {
   );
   const [isResettingData, setIsResettingData] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
+  const [enableRandomNote, setEnableRandomNote] = useState<boolean>(true);
   const isLoading = false;
   const error = null;
 
@@ -45,6 +47,23 @@ const Settings: React.FC = () => {
   useEffect(() => {
     setSearchParams({ tab: activeTab }, { replace: true });
   }, [activeTab, setSearchParams]);
+
+  // Load current settings to populate enableRandomNote
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await SettingsService.getSettings();
+        if (settings && typeof settings.enableRandomNote === "boolean") {
+          setEnableRandomNote(settings.enableRandomNote);
+        } else {
+          setEnableRandomNote(true);
+        }
+      } catch (err) {
+        console.error("Failed to load settings", err);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleTabChange = (newTab: SettingsTab) => {
     // Clear any existing toasts when switching tabs to prevent stale messages
@@ -55,10 +74,8 @@ const Settings: React.FC = () => {
   const handleResetData = async () => {
     try {
       setIsResettingData(true);
-      const response = await axios.delete(
-        "http://localhost:5002/api/settings/reset-data"
-      );
-      if (response.data.success) {
+      const response = await apiService.delete<void>("/settings/reset-data");
+      if (response.success) {
         toast.success("تم حذف جميع البيانات بنجاح!");
         setShowResetConfirmation(false);
         // Optionally reload the page to reflect the changes
@@ -73,6 +90,18 @@ const Settings: React.FC = () => {
       toast.error("فشل حذف البيانات. تحقق من وحدة التحكم للحصول على التفاصيل.");
     } finally {
       setIsResettingData(false);
+    }
+  };
+
+  const handleToggleRandomNote = async (checked: boolean) => {
+    try {
+      setEnableRandomNote(checked);
+      await SettingsService.updateSettings({ enableRandomNote: checked });
+      toast.success("تم تحديث إعداد التذكير العشوائي لليومية");
+    } catch (err) {
+      console.error("Error updating enableRandomNote", err);
+      setEnableRandomNote((prev) => !prev); // revert on error
+      toast.error("فشل تحديث الإعداد");
     }
   };
 
@@ -180,6 +209,23 @@ const Settings: React.FC = () => {
         {renderTabContent()}
 
         <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+          <h2 className="text-xl font-semibold mb-4">إعدادات عامة</h2>
+          <div className="flex flex-col gap-4 mb-6">
+            <label className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                  تفعيل نافذة التحفيز العشوائية
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                className="w-5 h-5"
+                checked={enableRandomNote}
+                onChange={(e) => handleToggleRandomNote(e.target.checked)}
+              />
+            </label>
+          </div>
+
           <h2 className="text-xl font-semibold mb-4">إجراءات النظام</h2>
           <div className="flex flex-wrap gap-4">
             <button

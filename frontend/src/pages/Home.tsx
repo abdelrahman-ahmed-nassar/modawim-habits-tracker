@@ -166,8 +166,15 @@ const Home: React.FC = () => {
     fetchDashboardData();
   }, []);
 
+  const hasHabits = (dashboardData?.totalHabits || 0) > 0;
+
   const getMotivationalMessage = () => {
     if (!dashboardData) return "";
+
+    if (!hasHabits) {
+      return "لا توجد عادات بعد. أضف أول عادة لك وانطلق! ✨";
+    }
+
     const completionRate =
       (dashboardData.completedToday / dashboardData.totalHabits) * 100;
 
@@ -178,7 +185,7 @@ const Home: React.FC = () => {
   };
 
   const getCompletionPercentage = () => {
-    if (!dashboardData) return 0;
+    if (!dashboardData || dashboardData.totalHabits === 0) return 0;
     return Math.round(
       (dashboardData.completedToday / dashboardData.totalHabits) * 100
     );
@@ -923,7 +930,9 @@ const Home: React.FC = () => {
               </div>
               <div className="text-gray-600 dark:text-gray-300">أفضل سلسلة</div>
               <div className="text-xs text-gray-500 mt-1">
-                {dashboardData?.longestStreakHabit.habitName || "غ/م"}
+                {hasHabits
+                  ? dashboardData?.longestStreakHabit.habitName || "—"
+                  : "لا توجد عادات بعد"}
               </div>
             </div>
           </div>
@@ -979,7 +988,9 @@ const Home: React.FC = () => {
             {dashboardData?.longestStreakHabit?.bestStreak || 0} أيام
           </p>
           <p className="text-xs text-gray-400 text-center mt-1">
-            {dashboardData?.longestStreakHabit?.habitName || "N/A"}
+            {hasHabits
+              ? dashboardData?.longestStreakHabit?.habitName || "—"
+              : "لا توجد عادات بعد"}
           </p>
         </div>
       </div>

@@ -2,6 +2,13 @@
 
 Base URL: `http://localhost:5002/api`
 
+Auth & scope:
+
+- `POST /auth/register` – register user (returns `{ user, token }`)
+- `POST /auth/login` – login (returns `{ user, token }`)
+- `GET /auth/me` – current user
+- All other `/api/...` routes require `Authorization: Bearer <token>` and are scoped to that user.
+
 ## Health Check
 
 - `GET /health` - Check server status
