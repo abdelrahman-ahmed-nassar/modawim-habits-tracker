@@ -55,33 +55,16 @@ const HabitCard: React.FC<HabitCardProps> = ({ habit, onClick }) => {
             </span>
           </div>
           <div className="mt-2">
-            {habit.goalType === "streak" ? (
-              <div className="mt-2">
-                <div className="flex justify-between text-xs mb-1">
-                  <span>هدف السلسلة</span>
-                  <span>
-                    {habit.currentStreak || 0}/{habit.goalValue}
-                  </span>
-                </div>
-                <Progress
-                  value={((habit.currentStreak || 0) / habit.goalValue) * 100}
-                  className="h-2"
-                />
-              </div>
-            ) : (
-              <div className="mt-2">
-                <div className="flex justify-between text-xs mb-1">
-                  <span>هدف العداد</span>
-                  <span>
-                    {habit.currentCounter || 0}/{habit.goalValue}
-                  </span>
-                </div>
-                <Progress
-                  value={((habit.currentCounter || 0) / habit.goalValue) * 100}
-                  className="h-2"
-                />
-              </div>
-            )}
+            <div className="flex justify-between text-xs mb-1">
+              <span>هدف السلسلة</span>
+              <span>
+                {habit.currentStreak || 0}/{habit.goalValue}
+              </span>
+            </div>
+            <Progress
+              value={((habit.currentStreak || 0) / habit.goalValue) * 100}
+              className="h-2"
+            />
           </div>
         </div>
         <div className="mt-4 text-xs text-right text-blue-600 dark:text-blue-400">
@@ -302,7 +285,7 @@ const HabitDetailView: React.FC<{ habitId: string; onBack: () => void }> = ({
           </p>
           <p>
             <span className="font-medium">نوع الهدف:</span>{" "}
-            {habit.goalType === "streak" ? "سلسلة" : "عداد"}
+            سلسلة
           </p>
           {habit.motivationNote && (
             <p>

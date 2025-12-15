@@ -1,7 +1,7 @@
 import React from "react";
 import { Habit } from "@shared/types/habit";
 import Card from "../ui/Card";
-import { BarChart2, CheckCircle, Clock, Flame } from "lucide-react";
+import { BarChart2, Clock, Flame } from "lucide-react";
 import Badge from "../ui/Badge";
 
 interface HabitOverviewProps {
@@ -106,17 +106,10 @@ const HabitOverview: React.FC<HabitOverviewProps> = ({
                 >
                   <div className="flex items-start justify-between">
                     <h4 className="font-medium text-base">{habit.name}</h4>
-                    {habit.goalType === "streak" ? (
-                      <span className="flex items-center text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2 py-1 rounded">
-                        <Flame className="w-3 h-3 mr-1" />
-                        {habit.currentStreak || 0}
-                      </span>
-                    ) : (
-                      <span className="flex items-center text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {habit.currentCounter || 0}/{habit.goalValue}
-                      </span>
-                    )}
+                    <span className="flex items-center text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2 py-1 rounded">
+                      <Flame className="w-3 h-3 mr-1" />
+                      {habit.currentStreak || 0}
+                    </span>
                   </div>
                   {habit.description && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
