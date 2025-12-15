@@ -599,7 +599,7 @@ const Weekly: React.FC = () => {
           // Get habits details first
           const habits = await habitsService.getAllHabits();
           const habitsMap = new Map<string, Habit>(
-            habits.map((h) => [h.id, h])
+            habits.map((h) => [h._id, h])
           );
 
           // Get an array of all habits from habitStats and combine with full habit details
@@ -1000,7 +1000,7 @@ const Weekly: React.FC = () => {
     try {
       // Make API call in background
       await completionsService.toggleCompletion(habitId, date);
-      toast.success("Habit completion updated");
+      toast.success("تم تحديث العادة");
     } catch (error) {
       console.error("Error toggling habit completion:", error);
       toast.error("Failed to update habit completion");

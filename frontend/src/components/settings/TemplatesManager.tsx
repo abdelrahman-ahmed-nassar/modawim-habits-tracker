@@ -75,7 +75,7 @@ const TemplatesManager: React.FC = () => {
       template: template.template,
     });
     setFormMode("edit");
-    setCurrentTemplateId(template.id);
+    setCurrentTemplateId(template._id);
     setShowForm(true);
   };
 
@@ -195,7 +195,7 @@ const TemplatesManager: React.FC = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {templates.map((template) => (
-            <Card key={template.id}>
+            <Card key={template._id}>
               <CardHeader
                 title={
                   <div className="flex items-center">
@@ -221,7 +221,7 @@ const TemplatesManager: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(template.id)}
+                    onClick={() => handleDelete(template._id)}
                   >
                     <Trash2 size={14} className="mr-1 text-red-500" />
                     حذف

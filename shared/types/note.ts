@@ -1,5 +1,5 @@
 export interface DailyNote {
-  id: string;
+  _id: string;
   userId: string;
   date: string; // YYYY-MM-DD format
   content: string;

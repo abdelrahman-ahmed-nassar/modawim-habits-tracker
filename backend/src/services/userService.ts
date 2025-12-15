@@ -1,50 +1,53 @@
-import type { User } from "@shared/types";
-import { UserModel } from "../models/userModel";
-import { HabitModel } from "../models/habitModel";
-import { DailyNoteModel } from "../models/dailyNoteModel";
+import type { User, CreateUserInput } from "@shared/types";
+import {
+  findAllUsers,
+  findUserById,
+  findUserByEmail,
+  insertUser,
+  updateUserDocument,
+  deleteUserDocumentById,
+  findUserSettings,
+  updateUserSettingsDocument,
+  resetUserEmbeddedData,
+} from "../repositories/userRepository";
+import { AppError, ErrorCodes } from "../middleware/errorHandler";
 
 /**
  * USERS COLLECTION HELPERS
  */
 export const getUsers = async (): Promise<User[]> => {
-  const users = await UserModel.find().lean<User[]>();
-  return users;
+  // Delegate to repository; behavior unchanged (returns all users)
+  return findAllUsers();
 };
 
 export const getUserById = async (id: string): Promise<User | null> => {
-  const user = await UserModel.findOne({ id }).lean<User | null>();
-  return user || null;
+  // Same semantics: lookup by _id, return null if not found
+  return findUserById(id);
 };
 
 export const getUserByEmail = async (email: string): Promise<User | null> => {
-  const normalized = email.toLowerCase();
-  const user = await UserModel.findOne({
-    email: normalized,
-  }).lean<User | null>();
-  return user || null;
+  // Normalize and delegate to repository implementation
+  return findUserByEmail(email);
 };
 
+/**
+ * Create a new user (for registration)
+ */
+export const createUser = async (userData: CreateUserInput): Promise<User> => {
+  // All persistence concerns handled by repository
+  return insertUser(userData);
+};
+
+/**
+ * Update an existing user
+ */
 export const saveUser = async (user: User): Promise<User> => {
-  const now = new Date().toISOString();
-  const payload: User = {
-    ...user,
-    email: user.email.toLowerCase(),
-    createdAt: user.createdAt || now,
-    updatedAt: now,
-  };
-
-  const saved = await UserModel.findOneAndUpdate({ id: payload.id }, payload, {
-    upsert: true,
-    new: true,
-    setDefaultsOnInsert: true,
-  }).lean<User>();
-
-  return saved;
+  // Preserve behavior (throws if not found) via repository
+  return updateUserDocument(user);
 };
 
 export const deleteUserById = async (userId: string): Promise<boolean> => {
-  const result = await UserModel.deleteOne({ id: userId });
-  return result.deletedCount === 1;
+  return deleteUserDocumentById(userId);
 };
 
 // Per-user settings helpers (embedded on User)
@@ -52,54 +55,22 @@ export const deleteUserById = async (userId: string): Promise<boolean> => {
 export const getUserSettings = async (
   userId: string
 ): Promise<User["settings"]> => {
-  const user = await getUserById(userId);
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user.settings;
+  // Same error semantics preserved in repository
+  return findUserSettings(userId);
 };
 
 export const updateUserSettings = async (
   userId: string,
   settingsData: Partial<User["settings"]>
 ): Promise<User["settings"]> => {
-  const user = await getUserById(userId);
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  const updatedSettings: User["settings"] = {
-    ...user.settings,
-    ...settingsData,
-  };
-
-  await saveUser({ ...user, settings: updatedSettings });
-  return updatedSettings;
+  // Keep behavior (merge + save) via repository helper
+  return updateUserSettingsDocument(userId, settingsData);
 };
 
 /**
  * Reset all user-embedded data and remove user-owned habits/notes.
  */
 export const resetUserData = async (userId: string): Promise<void> => {
-  const user = await getUserById(userId);
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  await HabitModel.deleteMany({ userId });
-  await DailyNoteModel.deleteMany({ userId });
-
-  const now = new Date().toISOString();
-  const resetUser: User = {
-    ...user,
-    settings: { enableRandomNote: true },
-    moods: [],
-    productivityLevels: [],
-    notesTemplates: [],
-    counters: [],
-    updatedAt: now,
-  };
-
-  await saveUser(resetUser);
+  // Repository handles deleting related data + reset semantics
+  await resetUserEmbeddedData(userId);
 };
-

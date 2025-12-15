@@ -10,7 +10,7 @@ import type { UserSettings } from "@shared/types";
  */
 export const getSettings = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const settings = await dataService.getUserSettings(userId);
 
     res.status(200).json({
@@ -26,7 +26,7 @@ export const getSettings = asyncHandler(
  */
 export const updateSettings = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const settingsData: Partial<UserSettings> = req.body;
 
     const updatedSettings = await dataService.updateUserSettings(
@@ -48,7 +48,7 @@ export const updateSettings = asyncHandler(
  */
 export const resetData = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     await dataService.resetUserData(userId);
 
     res.status(200).json({

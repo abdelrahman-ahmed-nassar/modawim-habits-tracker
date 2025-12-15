@@ -1,5 +1,5 @@
-import type { Counter } from "./counter";
-import type { NoteTemplate } from "./template";
+import type { Counter, CreateCounterInput } from "./counter";
+import type { NoteTemplate, CreateNoteTemplateInput } from "./template";
 
 export interface UserSettings {
   enableRandomNote: boolean;
@@ -16,7 +16,7 @@ export interface ProductivityLevelOption {
 }
 
 export interface User {
-  id: string;
+  _id: string;
   email: string;
   passwordHash: string;
   name: string;
@@ -28,6 +28,20 @@ export interface User {
   productivityLevels: ProductivityLevelOption[];
   notesTemplates: NoteTemplate[];
   counters: Counter[];
+}
+
+// Input type for creating a new user (no _id, nested docs also without _id)
+export interface CreateUserInput {
+  email: string;
+  passwordHash: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  settings: UserSettings;
+  moods: MoodOption[];
+  productivityLevels: ProductivityLevelOption[];
+  notesTemplates: CreateNoteTemplateInput[];
+  counters: CreateCounterInput[];
 }
 
 // Re-export for backward compatibility / flexibility

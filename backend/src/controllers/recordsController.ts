@@ -23,27 +23,27 @@ export const getDailyRecords = asyncHandler(
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
     }
 
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allCompletions = await dataService.getCompletions();
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === userId);
-    const activeHabits = habits.filter((h) => h.isActive);
+    // Use DB-level userId + isActive filter (uses compound index)
+    const activeHabits = await dataService.getActiveHabitsByUserId(userId);
+    const completions = await dataService.getCompletionsByUserId(userId);
 
-    const habitIds = new Set(habits.map((h) => h.id));
-    const dailyCompletions = allCompletions.filter(
-      (c) => c.date === date && habitIds.has(c.habitId)
-    );
+    const dailyCompletions = completions.filter((c) => c.date === date);
 
     // Filter completions to only include active habits
     const activeCompletions = dailyCompletions.filter((completion) =>
-      activeHabits.some((habit) => habit.id === completion.habitId)
+      activeHabits.some(
+        (habit) => habit._id.toString() === completion.habitId.toString()
+      )
     );
 
     // Combine completions with habit details
     const recordsWithDetails = await Promise.all(
       activeCompletions.map(async (completion) => {
-        const habit = activeHabits.find((h) => h.id === completion.habitId);
+        const habit = activeHabits.find(
+          (h) => h._id.toString() === completion.habitId.toString()
+        );
         return {
           ...completion,
           habitName: habit ? habit.name : "Unknown Habit",
@@ -55,7 +55,9 @@ export const getDailyRecords = asyncHandler(
 
     // Calculate completion percentages
     const completedHabits = new Set(
-      activeCompletions.filter((c) => c.completed).map((c) => c.habitId)
+      activeCompletions
+        .filter((c) => c.completed)
+        .map((c) => c.habitId.toString())
     );
 
     // Only count habits that should be active on this date based on repetition
@@ -65,8 +67,8 @@ export const getDailyRecords = asyncHandler(
 
     const completionRate =
       relevantHabits.length > 0
-        ? relevantHabits.filter((h) => completedHabits.has(h.id)).length /
-          relevantHabits.length
+        ? relevantHabits.filter((h) => completedHabits.has(h._id.toString()))
+            .length / relevantHabits.length
         : 0;
 
     res.status(200).json({
@@ -106,24 +108,20 @@ export const getWeeklyRecords = asyncHandler(
     // Get date range
     const dateRange = getDatesBetween(startDate, endDate);
 
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allCompletions = await dataService.getCompletions();
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === userId);
-    const activeHabits = habits.filter((h) => h.isActive);
+    // Use DB-level userId + isActive filter (uses compound index)
+    const activeHabits = await dataService.getActiveHabitsByUserId(userId);
+    const activeHabitIds = new Set(activeHabits.map((h) => h._id.toString()));
 
-    const habitIds = new Set(habits.map((h) => h.id));
-    const weeklyCompletions = allCompletions.filter(
-      (c) =>
-        c.date >= startDate &&
-        c.date <= endDate &&
-        habitIds.has(c.habitId)
+    const completions = await dataService.getCompletionsByUserId(userId);
+    const weeklyCompletions = completions.filter(
+      (c) => c.date >= startDate && c.date <= endDate
     );
 
     // Filter completions to only include active habits
     const activeWeeklyCompletions = weeklyCompletions.filter((completion) =>
-      activeHabits.some((habit) => habit.id === completion.habitId)
+      activeHabitIds.has(completion.habitId.toString())
     ); // Create daily stats
     const dailyRecords = await Promise.all(
       dateRange.map(async (date) => {
@@ -133,7 +131,7 @@ export const getWeeklyRecords = asyncHandler(
         const recordsWithDetails = await Promise.all(
           activeHabits.map(async (habit) => {
             const completion = dayCompletions.find(
-              (c) => c.habitId === habit.id
+              (c) => c.habitId.toString() === habit._id.toString()
             );
             const isRelevant = isDateActiveForHabit(
               date,
@@ -146,8 +144,8 @@ export const getWeeklyRecords = asyncHandler(
             const isCompleted = completion ? completion.completed : false;
 
             return {
-              id: completion?.id || `temp-${date}-${habit.id}`,
-              habitId: habit.id,
+              id: completion?.id || `temp-${date}-${habit._id}`,
+              habitId: habit._id,
               date,
               completed: isCompleted,
               completedAt: completion?.completedAt || "",
@@ -203,10 +201,12 @@ export const getWeeklyRecords = asyncHandler(
     const habitStats = await Promise.all(
       activeHabits.map(async (habit) => {
         const habitCompletions = activeWeeklyCompletions.filter(
-          (c) => c.habitId === habit.id
+          (c) => c.habitId.toString() === habit._id.toString()
         );
 
-        const completedCompletions = habitCompletions.filter((c) => c.completed);
+        const completedCompletions = habitCompletions.filter(
+          (c) => c.completed
+        );
 
         // Calculate how many days this habit should have been active
         const activeDates = dateRange.filter((date) =>
@@ -214,7 +214,7 @@ export const getWeeklyRecords = asyncHandler(
         );
 
         return {
-          habitId: habit.id,
+          habitId: habit._id,
           habitName: habit.name,
           goalValue: habit.goalValue,
           successRate:
@@ -265,24 +265,19 @@ export const getMonthlyRecords = asyncHandler(
     // Get date range for the month
     const dateRange = getDatesBetween(startDateStr, endDateStr);
 
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allCompletions = await dataService.getCompletions();
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === userId);
-    const activeHabits = habits.filter((h) => h.isActive);
+    // Use DB-level userId + isActive filter (uses compound index)
+    const activeHabits = await dataService.getActiveHabitsByUserId(userId);
+    const activeHabitIds = new Set(activeHabits.map((h) => h._id.toString()));
 
-    const habitIds = new Set(habits.map((h) => h.id));
-
-    const monthlyCompletions = allCompletions.filter(
-      (c) =>
-        c.date >= startDateStr &&
-        c.date <= endDateStr &&
-        habitIds.has(c.habitId)
+    const completions = await dataService.getCompletionsByUserId(userId);
+    const monthlyCompletions = completions.filter(
+      (c) => c.date >= startDateStr && c.date <= endDateStr
     );
 
     const activeMonthlyCompletions = monthlyCompletions.filter((completion) =>
-      activeHabits.some((habit) => habit.id === completion.habitId)
+      activeHabitIds.has(completion.habitId.toString())
     );
     const dailyCompletionCounts = dateRange.map((date) => {
       const dayCompletions = activeMonthlyCompletions.filter(
@@ -292,42 +287,37 @@ export const getMonthlyRecords = asyncHandler(
     });
 
     // Calculate completion percentage for each habit
-    const habitStats = await Promise.all(
-      activeHabits.map(async (habit) => {
-        // Filter completions for this habit
-        const habitCompletions = activeMonthlyCompletions.filter(
-          (c) => c.habitId === habit.id
-        );
+    // NOTE: We already have streak info from activeHabits - no need for extra DB calls
+    const habitStats = activeHabits.map((habit) => {
+      // Filter completions for this habit
+      const habitCompletions = activeMonthlyCompletions.filter(
+        (c) => c.habitId.toString() === habit._id.toString()
+      );
 
-        // Get dates when this habit should be active
-        const activeDates = dateRange.filter((date) =>
-          isDateActiveForHabit(date, habit.repetition, habit.specificDays)
-        );
+      // Get dates when this habit should be active
+      const activeDates = dateRange.filter((date) =>
+        isDateActiveForHabit(date, habit.repetition, habit.specificDays)
+      );
 
-        // Calculate completion rate
-        const completedDates = habitCompletions
-          .filter((c) => c.completed)
-          .map((c) => c.date);
+      // Calculate completion rate
+      const completedDates = habitCompletions
+        .filter((c) => c.completed)
+        .map((c) => c.date);
 
-        const completionRate =
-          activeDates.length > 0
-            ? completedDates.length / activeDates.length
-            : 0;
+      const completionRate =
+        activeDates.length > 0 ? completedDates.length / activeDates.length : 0;
 
-        // Get current streak
-        const streakInfo = await dataService.getHabitById(habit.id);
-
-        return {
-          habitId: habit.id,
-          habitName: habit.name,
-          habitTag: habit.tag,
-          completionRate,
-          completedDates,
-          currentStreak: streakInfo?.currentStreak || 0,
-          bestStreak: streakInfo?.bestStreak || 0,
-        };
-      })
-    ); // Calculate overall monthly stats
+      // Use streak info already available from activeHabits (no extra DB call needed)
+      return {
+        habitId: habit._id,
+        habitName: habit.name,
+        habitTag: habit.tag,
+        completionRate,
+        completedDates,
+        currentStreak: habit.currentStreak || 0,
+        bestStreak: habit.bestStreak || 0,
+      };
+    }); // Calculate overall monthly stats
     const monthlyStats = {
       totalHabits: activeHabits.length,
       totalCompletions: activeMonthlyCompletions.filter((c) => c.completed)

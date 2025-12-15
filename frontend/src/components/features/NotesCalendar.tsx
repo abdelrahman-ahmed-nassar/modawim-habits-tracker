@@ -71,7 +71,7 @@ const NotesCalendar: React.FC<NotesCalendarProps> = ({
 
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    navigate(`/daily/${dateStr}`);
+    navigate(`/daily/${dateStr}?tab=notes`);
   };
 
   const getMoodEmoji = (mood?: string) => {

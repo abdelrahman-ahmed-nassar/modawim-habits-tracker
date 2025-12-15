@@ -100,9 +100,9 @@ const HabitOverview: React.FC<HabitOverviewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {habitsInTag.map((habit) => (
                 <div
-                  key={habit.id}
+                  key={habit._id}
                   className="bg-white dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all"
-                  onClick={() => onSelectHabit(habit.id)}
+                  onClick={() => onSelectHabit(habit._id)}
                 >
                   <div className="flex items-start justify-between">
                     <h4 className="font-medium text-base">{habit.name}</h4>

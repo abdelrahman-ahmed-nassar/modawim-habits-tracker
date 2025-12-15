@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import { CreateHabitDto, Habit } from "@shared/types";
 import { ValidationError } from "../types/models";
 import { validateHabitCreate } from "../utils/validation";
@@ -15,9 +14,9 @@ import type { AuthenticatedRequest } from "../types/auth";
  */
 export const getAllHabits = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const allHabits = await dataService.getHabits();
-    const userId = req.user!.id;
-    const habits = allHabits.filter((h) => h.userId === userId);
+    const userId = req.user!._id;
+    // Use DB-level userId filter for better performance
+    const habits = await dataService.getHabitsByUserId(userId);
 
     // Parse query params for filtering and sorting
     let { sort, filter, tag, active } = req.query;
@@ -82,7 +81,7 @@ export const getHabitById = asyncHandler(
     const { id } = req.params;
     const habit = await dataService.getHabitById(id);
 
-    if (!habit || habit.userId !== req.user!.id) {
+    if (!habit || habit.userId.toString() !== req.user!._id.toString()) {
       throw new AppError(`Habit with ID ${id} not found`, 404);
     }
 
@@ -104,14 +103,14 @@ export const createHabit = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const habitData: CreateHabitDto = req.body;
 
-  // Validate habit data
+    // Validate habit data
     const errors = validateHabitCreate(habitData);
 
     if (errors.length > 0) {
       throw new AppError("Invalid habit data", 400, errors);
     }
 
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
     const habit = await dataService.createHabit({
       userId,
@@ -135,29 +134,30 @@ export const updateHabit = asyncHandler(
     const { id } = req.params;
     const habitData: Partial<Habit> = req.body;
 
-  // Validate the update data
-  if (habitData.name !== undefined && habitData.name.trim() === "") {
-    throw new AppError("Name cannot be empty", 400);
+    // Validate the update data
+    if (habitData.name !== undefined && habitData.name.trim() === "") {
+      throw new AppError("Name cannot be empty", 400);
+    }
+
+    // Find existing habit
+    const existingHabit = await dataService.getHabitById(id);
+
+    if (!existingHabit || existingHabit.userId.toString() !== req.user!._id.toString()) {
+      throw new AppError(`Habit with ID ${id} not found`, 404);
+    }
+
+    // Prevent changing ownership
+    const { userId: _ignoreUserId, ...rest } = habitData;
+
+    const updatedHabit = await dataService.updateHabit(id, rest);
+
+    res.status(200).json({
+      success: true,
+      data: updatedHabit,
+      message: "Habit updated successfully",
+    });
   }
-
-  // Find existing habit
-  const existingHabit = await dataService.getHabitById(id);
-
-  if (!existingHabit || existingHabit.userId !== req.user!.id) {
-    throw new AppError(`Habit with ID ${id} not found`, 404);
-  }
-
-  // Prevent changing ownership
-  const { userId: _ignoreUserId, ...rest } = habitData;
-
-  const updatedHabit = await dataService.updateHabit(id, rest);
-
-  res.status(200).json({
-    success: true,
-    data: updatedHabit,
-    message: "Habit updated successfully",
-  });
-});
+);
 
 /**
  * Delete a habit
@@ -169,22 +169,13 @@ export const deleteHabit = asyncHandler(
 
     const existingHabit = await dataService.getHabitById(id);
 
-    if (!existingHabit || existingHabit.userId !== req.user!.id) {
+    if (!existingHabit || existingHabit.userId.toString() !== req.user!._id.toString()) {
       throw new AppError(`Habit with ID ${id} not found`, 404);
     }
 
-  // Delete habit
+    // Delete habit (completions are stored in habit.completedDays, so they're
+    // automatically removed when the habit is deleted)
     await dataService.deleteHabit(id);
-
-  // Delete associated completion records
-  // This would normally be in a transaction but we'll handle it separately
-  const completions = await dataService.getCompletionsByHabitId(id);
-  if (completions.length > 0) {
-    // We need to remove completions for this habit from the completions file
-    const allCompletions = await dataService.getCompletions();
-    const updatedCompletions = allCompletions.filter((c) => c.habitId !== id);
-    await dataService.replaceAllCompletions(updatedCompletions);
-  }
 
     res.status(200).json({
       success: true,
@@ -204,7 +195,7 @@ export const archiveHabit = asyncHandler(
     // Find existing habit
     const existingHabit = await dataService.getHabitById(id);
 
-    if (!existingHabit || existingHabit.userId !== req.user!.id) {
+    if (!existingHabit || existingHabit.userId.toString() !== req.user!._id.toString()) {
       throw new AppError(`Habit with ID ${id} not found`, 404);
     }
 
@@ -230,7 +221,7 @@ export const restoreHabit = asyncHandler(
     // Find existing habit
     const existingHabit = await dataService.getHabitById(id);
 
-    if (!existingHabit || existingHabit.userId !== req.user!.id) {
+    if (!existingHabit || existingHabit.userId.toString() !== req.user!._id.toString()) {
       throw new AppError(`Habit with ID ${id} not found`, 404);
     }
 
@@ -251,12 +242,9 @@ export const restoreHabit = asyncHandler(
  */
 export const getRandomHabit = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const allHabits = await dataService.getHabits();
-    const userId = req.user!.id;
-    const habits = allHabits.filter((h) => h.userId === userId);
-
-    // Filter to active habits only
-    const activeHabits = habits.filter((habit) => habit.isActive !== false);
+    const userId = req.user!._id;
+    // Use DB-level filter for userId + isActive (uses compound index)
+    const activeHabits = await dataService.getActiveHabitsByUserId(userId);
 
     if (activeHabits.length === 0) {
       throw new AppError("No active habits found", 404);
@@ -286,7 +274,7 @@ export const syncHabitAnalytics = asyncHandler(
       // Sync analytics for a specific habit
       const habit = await dataService.getHabitById(id);
 
-      if (!habit || habit.userId !== req.user!.id) {
+      if (!habit || habit.userId.toString() !== req.user!._id.toString()) {
         throw new AppError(`Habit with ID ${id} not found`, 404);
       }
 
@@ -303,24 +291,24 @@ export const syncHabitAnalytics = asyncHandler(
       });
     } else {
       // Sync analytics for all habits
-      const allHabits = await dataService.getHabits();
-      const habits = allHabits.filter((h) => h.userId === req.user!.id);
+      const userId = req.user!._id;
+      const habits = await dataService.getHabitsByUserId(userId);
       let syncedCount = 0;
       let errorCount = 0;
 
       // Recalculate streaks for all habits
       for (const habit of habits) {
         try {
-          await dataService.updateHabitStreaks(habit.id);
+          await dataService.updateHabitStreaks(habit._id);
           syncedCount++;
         } catch (error) {
-          console.error(`Error syncing habit ${habit.id}:`, error);
+          console.error(`Error syncing habit ${habit._id}:`, error);
           errorCount++;
         }
       }
 
       // Get updated habits
-      const updatedHabits = await dataService.getHabits();
+      const updatedHabits = await dataService.getHabitsByUserId(userId);
 
       res.status(200).json({
         success: true,
@@ -346,12 +334,12 @@ export const reorderHabits = asyncHandler(
       throw new AppError("habitIds must be an array", 400);
     }
 
-    // Get all habits for this user
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === req.user!.id);
+    // Get all habits for this user (uses userId index)
+    const userId = req.user!._id;
+    const habits = await dataService.getHabitsByUserId(userId);
 
     // Validate that all IDs exist
-    const habitIdSet = new Set(habits.map((h) => h.id));
+    const habitIdSet = new Set(habits.map((h) => h._id.toString()));
     const invalidIds = habitIds.filter((id) => !habitIdSet.has(id));
 
     if (invalidIds.length > 0) {
@@ -360,15 +348,15 @@ export const reorderHabits = asyncHandler(
 
     // Update order for each habit
     const updatedHabits = habits.map((habit) => {
-      const orderIndex = habitIds.indexOf(habit.id);
+      const orderIndex = habitIds.indexOf(habit._id.toString());
       return {
         ...habit,
         order: orderIndex !== -1 ? orderIndex : habit.order || 999,
       };
     });
 
-    // Save updated habits
-    await dataService.replaceAllHabits(updatedHabits);
+    // Save updated habits for this user only
+    await dataService.replaceAllHabits(req.user!._id, updatedHabits);
 
     res.status(200).json({
       success: true,

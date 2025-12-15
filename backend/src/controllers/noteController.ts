@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import { DailyNote } from "@shared/types";
 import * as dataService from "../services/dataService";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
@@ -12,9 +11,9 @@ import type { AuthenticatedRequest } from "../types/auth";
  */
 export const getAllNotes = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const allNotes = await dataService.getNotes();
-    const userId = req.user!.id;
-    const notes = allNotes.filter((n) => n.userId === userId);
+    const userId = req.user!._id;
+    // Use DB-level userId filter (uses index)
+    const notes = await dataService.getNotesByUserId(userId);
 
     res.status(200).json({
       success: true,
@@ -36,8 +35,10 @@ export const getNoteByDate = asyncHandler(
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
     }
 
-    const note = await dataService.getNoteByDate(date);
-    if (!note || note.userId !== req.user!.id) {
+    const userId = req.user!._id;
+    // Use compound index for userId + date lookup
+    const note = await dataService.getNoteByUserIdAndDate(userId, date);
+    if (!note) {
       throw new AppError(`No note found for date ${date}`, 404);
     }
 
@@ -56,32 +57,33 @@ export const createNote = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { date, content, mood, productivityLevel } = req.body;
 
-  // Validate date format
-  if (!isValidDateFormat(date)) {
-    throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
+    // Validate date format
+    if (!isValidDateFormat(date)) {
+      throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
+    }
+
+    const userId = req.user!._id;
+
+    const noteData: Omit<DailyNote, "_id" | "createdAt" | "updatedAt"> = {
+      userId,
+      date,
+      content,
+      mood,
+      productivityLevel,
+    };
+
+    const validationErrors = await validateDailyNote(noteData);
+    if (validationErrors.length > 0) {
+      throw new AppError(validationErrors[0].message, 400);
+    }
+
+    const note = await dataService.saveNote(noteData);
+    res.status(201).json({
+      success: true,
+      data: note,
+    });
   }
-
-  const userId = req.user!.id;
-
-  const noteData: Omit<DailyNote, "id" | "createdAt" | "updatedAt"> = {
-    userId,
-    date,
-    content,
-    mood,
-    productivityLevel,
-  };
-
-  const validationErrors = await validateDailyNote(noteData);
-  if (validationErrors.length > 0) {
-    throw new AppError(validationErrors[0].message, 400);
-  }
-
-  const note = await dataService.saveNote(noteData);
-  res.status(201).json({
-    success: true,
-    data: note,
-  });
-});
+);
 
 /**
  * Update a note
@@ -92,19 +94,20 @@ export const updateNote = asyncHandler(
     const { id } = req.params;
     const { content, mood, productivityLevel } = req.body;
 
-    const noteData: Partial<Omit<DailyNote, "id" | "createdAt" | "updatedAt">> =
-      {
-        content,
-        mood,
-        productivityLevel,
-      };
+    const noteData: Partial<
+      Omit<DailyNote, "_id" | "createdAt" | "updatedAt">
+    > = {
+      content,
+      mood,
+      productivityLevel,
+    };
 
-    // For validation & ownership, load the existing note
-    const existingNote = await dataService
-      .getNotes()
-      .then((notes) => notes.find((n) => n.id === id));
+    // For validation & ownership, load existing notes for this user
+    const userId = req.user!._id;
+    const userNotes = await dataService.getNotesByUserId(userId);
+    const existingNote = userNotes.find((n) => n._id.toString() === id);
 
-    if (!existingNote || existingNote.userId !== req.user!.id) {
+    if (!existingNote) {
       throw new AppError(`Note with ID ${id} not found`, 404);
     }
 
@@ -152,11 +155,11 @@ export const deleteNote = asyncHandler(
     const { id } = req.params;
 
     // Ensure note belongs to current user
-    const existingNote = await dataService
-      .getNotes()
-      .then((notes) => notes.find((n) => n.id === id));
+    const userId = req.user!._id;
+    const userNotes = await dataService.getNotesByUserId(userId);
+    const existingNote = userNotes.find((n) => n._id.toString() === id);
 
-    if (!existingNote || existingNote.userId !== req.user!.id) {
+    if (!existingNote) {
       throw new AppError(`Note with ID ${id} not found`, 404);
     }
 

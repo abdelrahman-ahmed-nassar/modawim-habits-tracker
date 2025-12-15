@@ -73,7 +73,7 @@ const CountersManager: React.FC = () => {
       motivationNote: counter.motivationNote || "",
     });
     setFormMode("edit");
-    setCurrentCounterId(counter.id);
+    setCurrentCounterId(counter._id);
     setShowForm(true);
   };
 
@@ -144,7 +144,7 @@ const CountersManager: React.FC = () => {
       counter.goal > 0 ? (counter.currentCount / counter.goal) * 100 : 0;
 
     return (
-      <Card key={counter.id}>
+      <Card key={counter._id}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
             <div className="flex-1">
@@ -164,7 +164,7 @@ const CountersManager: React.FC = () => {
               </button>
               <button
                 className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                onClick={() => handleDelete(counter.id)}
+                onClick={() => handleDelete(counter._id)}
               >
                 <Trash2 size={16} />
               </button>

@@ -68,9 +68,17 @@ const Profile: React.FC = () => {
       setNewPassword("");
       setConfirmPassword("");
       toast.success("تم تحديث كلمة المرور");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to change password", err);
-      toast.error("فشل تحديث كلمة المرور");
+      // Backend error message is in err.response.message
+      const apiError = err as { response?: { message?: string } };
+      const errorMessage = apiError.response?.message || "";
+
+      if (errorMessage.includes("INVALID_CURRENT_PASSWORD")) {
+        toast.error("كلمة المرور الحالية غير صحيحة");
+      } else {
+        toast.error("فشل تحديث كلمة المرور");
+      }
     } finally {
       setChangingPassword(false);
     }
@@ -232,4 +240,3 @@ const Profile: React.FC = () => {
 };
 
 export default Profile;
-

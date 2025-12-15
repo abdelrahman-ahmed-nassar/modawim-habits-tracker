@@ -1,90 +1,59 @@
 import { Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import { NoteTemplate } from "@shared/types";
 import type { AuthenticatedRequest } from "../types/auth";
 import { getUserById, saveUser } from "../services/dataService";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
 
 /**
  * Get all note templates
  */
-export const getAllTemplates = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  try {
-    const user = await getUserById(req.user!.id);
+export const getAllTemplates = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await getUserById(req.user!._id);
     const templates = user?.notesTemplates || [];
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: templates,
     });
-  } catch (error) {
-    console.error("Error fetching templates:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch templates",
-    });
   }
-};
+);
 
 /**
  * Get template by ID
  */
-export const getTemplateById = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  const { id } = req.params;
+export const getTemplateById = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
 
-  try {
-    const user = await getUserById(req.user!.id);
-    const template = user?.notesTemplates.find((t) => t.id === id);
+    const user = await getUserById(req.user!._id);
+    const template = user?.notesTemplates.find((t) => t._id.toString() === id);
     if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found",
-      });
+      throw new AppError("Template not found", 404);
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: template,
     });
-  } catch (error) {
-    console.error("Error fetching template:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch template",
-    });
   }
-};
+);
 
 /**
  * Create new template
  */
-export const createTemplate = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  try {
-    const user = await getUserById(req.user!.id);
+export const createTemplate = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await getUserById(req.user!._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new AppError("User not found", 404);
     }
 
     const { name, template } = req.body;
     if (!name || !template) {
-      return res.status(400).json({
-        success: false,
-        message: "Name and template content are required",
-      });
+      throw new AppError("Name and template content are required", 400);
     }
 
-    const newTemplate: NoteTemplate = {
-      id: uuidv4(),
+    const newTemplateData = {
       name,
       template,
       createdAt: new Date().toISOString(),
@@ -92,48 +61,46 @@ export const createTemplate = async (
     };
 
     const templates = user.notesTemplates || [];
-    await saveUser({ ...user, notesTemplates: [...templates, newTemplate] });
-
-    return res.status(201).json({
-      success: true,
-      data: newTemplate,
+    // Cast to any to allow adding subdocument without _id (Mongoose will generate it)
+    const updatedTemplates = [
+      ...templates,
+      newTemplateData,
+    ] as typeof templates;
+    const updatedUser = await saveUser({
+      ...user,
+      notesTemplates: updatedTemplates,
     });
-  } catch (error) {
-    console.error("Error creating template:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create template",
+
+    // Get the newly created template (last one in the array, now with _id)
+    const createdTemplate =
+      updatedUser.notesTemplates[updatedUser.notesTemplates.length - 1];
+
+    res.status(201).json({
+      success: true,
+      data: createdTemplate,
+      message: "Template created successfully",
     });
   }
-};
+);
 
 /**
  * Update template
  */
-export const updateTemplate = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  const { id } = req.params;
-  const { name, template } = req.body;
+export const updateTemplate = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const { name, template } = req.body;
 
-  try {
-    const user = await getUserById(req.user!.id);
+    const user = await getUserById(req.user!._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new AppError("User not found", 404);
     }
 
     const existingTemplate = (user.notesTemplates || []).find(
-      (t) => t.id === id
+      (t) => t._id.toString() === id
     );
     if (!existingTemplate) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found",
-      });
+      throw new AppError("Template not found", 404);
     }
 
     const updatedTemplate: NoteTemplate = {
@@ -144,66 +111,46 @@ export const updateTemplate = async (
     };
 
     const updatedTemplates = (user.notesTemplates || []).map((t) =>
-      t.id === id ? updatedTemplate : t
+      t._id.toString() === id ? updatedTemplate : t
     );
 
     await saveUser({ ...user, notesTemplates: updatedTemplates });
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: updatedTemplate,
-    });
-  } catch (error) {
-    console.error("Error updating template:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update template",
+      message: "Template updated successfully",
     });
   }
-};
+);
 
 /**
  * Delete template
  */
-export const deleteTemplate = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  const { id } = req.params;
+export const deleteTemplate = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
 
-  try {
-    const user = await getUserById(req.user!.id);
+    const user = await getUserById(req.user!._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new AppError("User not found", 404);
     }
 
     const existingTemplate = (user.notesTemplates || []).find(
-      (t) => t.id === id
+      (t) => t._id.toString() === id
     );
     if (!existingTemplate) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found",
-      });
+      throw new AppError("Template not found", 404);
     }
 
     const updatedTemplates = (user.notesTemplates || []).filter(
-      (t) => t.id !== id
+      (t) => t._id.toString() !== id
     );
     await saveUser({ ...user, notesTemplates: updatedTemplates });
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Template deleted successfully",
     });
-  } catch (error) {
-    console.error("Error deleting template:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete template",
-    });
   }
-};
+);

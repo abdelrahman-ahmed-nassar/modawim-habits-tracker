@@ -1,11 +1,14 @@
 import { Schema, model } from "mongoose";
 import { DailyNote } from "@shared/types";
 
-const DailyNoteSchema = new Schema<DailyNote>(
+const DailyNoteSchema = new Schema(
   {
-    id: { type: String, required: true, unique: true },
-    userId: { type: String, required: true, index: true },
-    date: { type: String, required: true, index: true },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    date: { type: String, required: true },
     content: { type: String, required: true },
     mood: { type: String },
     productivityLevel: { type: String },
@@ -18,6 +21,7 @@ const DailyNoteSchema = new Schema<DailyNote>(
   }
 );
 
-DailyNoteSchema.index({ date: 1 }, { unique: true });
+// Compound unique index: each user can have only one note per date
+DailyNoteSchema.index({ userId: 1, date: 1 }, { unique: true });
 
-export const DailyNoteModel = model<DailyNote>("DailyNote", DailyNoteSchema);
+export const DailyNoteModel = model("DailyNote", DailyNoteSchema);

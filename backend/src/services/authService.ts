@@ -1,11 +1,10 @@
-import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { User } from "@shared/types";
+import type { User, CreateUserInput } from "@shared/types";
 import {
   getUserByEmail,
   getUserById,
-  saveUser,
+  createUser,
   createHabit,
   deleteHabitsByUserId,
   deleteNotesByUserId,
@@ -48,7 +47,7 @@ export const verifyPassword = async (
 
 export const signToken = (user: User): string => {
   const payload: AuthTokenPayload = {
-    sub: user.id,
+    sub: user._id,
     email: user.email,
     // include name for convenience; not critical for verification logic
     name: (user as any).name,
@@ -79,14 +78,15 @@ export const registerUser = async (
 
   const existing = await getUserByEmail(email);
   if (existing) {
-    throw new Error("User with this email already exists");
+    const error = new Error("EMAIL_EXISTS") as Error & { statusCode: number };
+    error.statusCode = 400;
+    throw error;
   }
 
   const passwordHash = await hashPassword(params.password);
   const now = new Date().toISOString();
 
   const defaultCounters = DEFAULT_COUNTER_TEMPLATES.map((c) => ({
-    id: uuidv4(),
     name: c.name,
     goal: c.goal,
     motivationNote: c.motivationNote,
@@ -97,12 +97,11 @@ export const registerUser = async (
 
   const defaultNoteTemplates = DEFAULT_NOTE_TEMPLATES.map((t) => ({
     ...t,
-    createdAt: t.createdAt ?? now,
-    updatedAt: t.updatedAt ?? now,
+    createdAt: now,
+    updatedAt: now,
   }));
 
-  const newUser: User = {
-    id: uuidv4(),
+  const newUserData: CreateUserInput = {
     name,
     email,
     passwordHash,
@@ -117,13 +116,14 @@ export const registerUser = async (
     counters: defaultCounters,
   };
 
-  await saveUser(newUser);
+  // Create user and get back the document with MongoDB-generated _id
+  const createdUser = await createUser(newUserData);
 
   // Seed default habits sequentially (avoid concurrent file writes clobbering each other)
   for (const h of DEFAULT_HABITS) {
     // eslint-disable-next-line no-await-in-loop
     await createHabit({
-      userId: newUser.id,
+      userId: createdUser._id,
       name: h.name,
       description: h.description,
       tag: h.tag,
@@ -135,9 +135,9 @@ export const registerUser = async (
     });
   }
 
-  const token = signToken(newUser);
+  const token = signToken(createdUser);
 
-  return { user: newUser, token };
+  return { user: createdUser, token };
 };
 
 export const loginUser = async (
@@ -147,12 +147,20 @@ export const loginUser = async (
   const user = await getUserByEmail(email);
 
   if (!user) {
-    throw new Error("Invalid email or password");
+    const error = new Error("EMAIL_NOT_FOUND") as Error & {
+      statusCode: number;
+    };
+    error.statusCode = 401;
+    throw error;
   }
 
   const isValid = await verifyPassword(params.password, user.passwordHash);
   if (!isValid) {
-    throw new Error("Invalid email or password");
+    const error = new Error("INVALID_PASSWORD") as Error & {
+      statusCode: number;
+    };
+    error.statusCode = 401;
+    throw error;
   }
 
   const token = signToken(user);

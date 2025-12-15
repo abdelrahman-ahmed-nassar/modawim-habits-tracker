@@ -516,7 +516,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                   ) : templates.length > 0 ? (
                     templates.map((template) => (
                       <button
-                        key={template.id}
+                        key={template._id}
                         onClick={() => insertTemplate(template)}
                         className="w-full text-left px-2 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                         disabled={disabled}

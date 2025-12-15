@@ -9,7 +9,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import apiService from "../services/api";
 import { SettingsService } from "../services/settings";
 import PageContainer from "../components/layout/PageContainer";
 import HabitsManager from "../components/settings/HabitsManager";
@@ -74,7 +73,7 @@ const Settings: React.FC = () => {
   const handleResetData = async () => {
     try {
       setIsResettingData(true);
-      const response = await apiService.delete<void>("/settings/reset-data");
+      const response = await SettingsService.resetData();
       if (response.success) {
         toast.success("تم حذف جميع البيانات بنجاح!");
         setShowResetConfirmation(false);
@@ -139,71 +138,71 @@ const Settings: React.FC = () => {
           {/* Tabs container: horizontally scrollable on small screens, full layout on larger screens */}
           <nav className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
             <div className="flex space-x-4 space-x-reverse overflow-x-auto no-scrollbar sm:space-x-8 sm:overflow-visible">
-            <button
-              onClick={() => handleTabChange("habits")}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "habits"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-500"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <Briefcase className="w-4 h-4 ml-2" />
-                <span>العادات</span>
-              </div>
-            </button>{" "}
-            <button
-              onClick={() => handleTabChange("moods")}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "moods"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-500"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <MessageSquare className="w-4 h-4 ml-2" />
-                <span>الحالات المزاجية</span>
-              </div>
-            </button>{" "}
-            <button
-              onClick={() => handleTabChange("productivity")}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "productivity"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-500"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <Zap className="w-4 h-4 ml-2" />
-                <span>مستويات الإنتاجية</span>
-              </div>
-            </button>{" "}
-            <button
-              onClick={() => handleTabChange("templates")}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "templates"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-500"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <FileText className="w-4 h-4 ml-2" />
-                <span>قوالب اليوميات</span>
-              </div>
-            </button>{" "}
-            <button
-              onClick={() => handleTabChange("counters")}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "counters"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-500"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <Calculator className="w-4 h-4 ml-2" />
-                <span>العدادات</span>
-              </div>
-            </button>
+              <button
+                onClick={() => handleTabChange("habits")}
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "habits"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-500"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <div className="flex items-center">
+                  <Briefcase className="w-4 h-4 ml-2" />
+                  <span>العادات</span>
+                </div>
+              </button>{" "}
+              <button
+                onClick={() => handleTabChange("moods")}
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "moods"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-500"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <div className="flex items-center">
+                  <MessageSquare className="w-4 h-4 ml-2" />
+                  <span>الحالات المزاجية</span>
+                </div>
+              </button>{" "}
+              <button
+                onClick={() => handleTabChange("productivity")}
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "productivity"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-500"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <div className="flex items-center">
+                  <Zap className="w-4 h-4 ml-2" />
+                  <span>مستويات الإنتاجية</span>
+                </div>
+              </button>{" "}
+              <button
+                onClick={() => handleTabChange("templates")}
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "templates"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-500"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <div className="flex items-center">
+                  <FileText className="w-4 h-4 ml-2" />
+                  <span>قوالب اليوميات</span>
+                </div>
+              </button>{" "}
+              <button
+                onClick={() => handleTabChange("counters")}
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "counters"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-500"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <div className="flex items-center">
+                  <Calculator className="w-4 h-4 ml-2" />
+                  <span>العدادات</span>
+                </div>
+              </button>
             </div>
           </nav>
         </div>

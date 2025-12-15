@@ -28,9 +28,17 @@ const Register = () => {
       await AuthService.register({ name, email, password });
       toast.success("تم إنشاء الحساب بنجاح");
       navigate("/", { replace: true });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Register error", err);
-      toast.error("فشل إنشاء الحساب. حاول مرة أخرى.");
+      // Backend error message is in err.response.message
+      const apiError = err as { response?: { message?: string } };
+      const errorMessage = apiError.response?.message || "";
+
+      if (errorMessage.includes("EMAIL_EXISTS")) {
+        toast.error("البريد الإلكتروني مسجل بالفعل");
+      } else {
+        toast.error("فشل إنشاء الحساب. حاول مرة أخرى.");
+      }
     } finally {
       setIsSubmitting(false);
     }

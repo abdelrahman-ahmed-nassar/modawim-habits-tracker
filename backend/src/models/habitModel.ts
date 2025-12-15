@@ -1,10 +1,13 @@
 import { Schema, model } from "mongoose";
 import { Habit } from "@shared/types";
 
-const HabitSchema = new Schema<Habit>(
+const HabitSchema = new Schema(
   {
-    id: { type: String, required: true, unique: true },
-    userId: { type: String, required: true, index: true },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     name: { type: String, required: true },
     description: { type: String },
     tag: { type: String, required: true },
@@ -30,6 +33,13 @@ const HabitSchema = new Schema<Habit>(
   }
 );
 
+// Index for filtering habits by user (most common query pattern)
 HabitSchema.index({ userId: 1 });
 
-export const HabitModel = model<Habit>("Habit", HabitSchema);
+// Index for querying completions by date (completedDays contains YYYYMMDD integers)
+HabitSchema.index({ completedDays: 1 });
+
+// Compound index for user + active status (common filter combination)
+HabitSchema.index({ userId: 1, isActive: 1 });
+
+export const HabitModel = model("Habit", HabitSchema);

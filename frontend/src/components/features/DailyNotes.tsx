@@ -142,7 +142,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({
     try {
       if (note) {
         // Update existing note
-        const updatedNote = await NotesService.updateNote(note.id, {
+        const updatedNote = await NotesService.updateNote(note._id, {
           content: content.trim(),
           mood: mood || undefined,
           productivityLevel: productivityLevel || undefined,
@@ -177,7 +177,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({
 
     setLoading(true);
     try {
-      await NotesService.deleteNote(note.id);
+      await NotesService.deleteNote(note._id);
       setNote(null);
       setContent("");
       setMood("");
@@ -300,7 +300,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({
                           ) : templates.length > 0 ? (
                             templates.map((template) => (
                               <button
-                                key={template.id}
+                                key={template._id}
                                 onClick={() => applyTemplate(template)}
                                 className="w-full text-left px-2 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                               >

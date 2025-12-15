@@ -1,5 +1,5 @@
 export interface Counter {
-  id: string;
+  _id: string;
   name: string;
   goal: number;
   motivationNote: string;
@@ -7,6 +7,8 @@ export interface Counter {
   createdAt: string;
   updatedAt: string;
 }
+
+export type CreateCounterInput = Omit<Counter, "_id">;
 
 export interface CreateCounterRequest {
   name: string;

@@ -11,13 +11,14 @@ import type { AuthenticatedRequest } from "../types/auth";
  */
 export const getNotesAnalytics = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allNotes = await dataService.getNotes();
-    const notes = allNotes.filter((n) => n.userId === userId);
+    // Use DB-level userId filter (uses index)
+    const notes = await dataService.getNotesByUserId(userId);
     const moodOptions = await optionsService.getMoods(userId);
-    const productivityOptions =
-      await optionsService.getProductivityLevels(userId);
+    const productivityOptions = await optionsService.getProductivityLevels(
+      userId
+    );
 
     // Create lookups for mood and productivity values
     const moodValueMap = new Map(moodOptions.map((m) => [m.label, m.value]));
@@ -208,10 +209,10 @@ export const getNotesAnalytics = asyncHandler(
  */
 export const getMoodTrends = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allNotes = await dataService.getNotes();
-    const notes = allNotes.filter((n) => n.userId === userId);
+    // Use DB-level userId filter (uses index)
+    const notes = await dataService.getNotesByUserId(userId);
     const moodOptions = await optionsService.getMoods(userId);
 
     // Create lookup for mood values
@@ -273,19 +274,15 @@ export const getMoodTrends = asyncHandler(
  */
 export const getProductivityCorrelation = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allNotes = await dataService.getNotes();
-    const notes = allNotes.filter((n) => n.userId === userId);
-
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === userId);
-
-    const allCompletions = await dataService.getCompletions();
-    const habitIds = new Set(habits.map((h) => h.id));
-    const completions = allCompletions.filter((c) => habitIds.has(c.habitId));
-    const productivityOptions =
-      await optionsService.getProductivityLevels(userId);
+    // Use DB-level userId filters (uses indexes)
+    const notes = await dataService.getNotesByUserId(userId);
+    const habits = await dataService.getHabitsByUserId(userId);
+    const completions = await dataService.getCompletionsByUserId(userId);
+    const productivityOptions = await optionsService.getProductivityLevels(
+      userId
+    );
 
     // Create lookup for productivity values
     const productivityValueMap = new Map(
@@ -311,7 +308,7 @@ export const getProductivityCorrelation = asyncHandler(
     // Group completions by habit and date
     const habitCompletions = new Map();
     completions.forEach((completion) => {
-      const key = `${completion.habitId}-${completion.date}`;
+      const key = `${completion.habitId.toString()}-${completion.date}`;
       habitCompletions.set(key, true);
     });
 
@@ -323,7 +320,7 @@ export const getProductivityCorrelation = asyncHandler(
 
         // Find all dates where this habit was completed or not
         Array.from(dateToProductivityMap.keys()).forEach((date) => {
-          const key = `${habit.id}-${date}`;
+          const key = `${habit._id.toString()}-${date}`;
           if (habitCompletions.has(key)) {
             datesWithCompletion.push(date);
           } else {
@@ -370,7 +367,7 @@ export const getProductivityCorrelation = asyncHandler(
         }
 
         return {
-          habitId: habit.id,
+          habitId: habit._id,
           habitName: habit.name,
           datesCompletedCount: datesWithCompletion.length,
           datesNotCompletedCount: datesWithoutCompletion.length,
@@ -421,13 +418,14 @@ export const getNotesCalendar = asyncHandler(
     const monthFormatted = monthNum.toString().padStart(2, "0");
     const yearMonthPrefix = `${yearNum}-${monthFormatted}`;
 
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allNotes = await dataService.getNotes();
-    const notes = allNotes.filter((n) => n.userId === userId);
+    // Use DB-level userId filter (uses index)
+    const notes = await dataService.getNotesByUserId(userId);
     const moodOptions = await optionsService.getMoods(userId);
-    const productivityOptions =
-      await optionsService.getProductivityLevels(userId);
+    const productivityOptions = await optionsService.getProductivityLevels(
+      userId
+    );
 
     // Create lookups for mood and productivity values
     const moodValueMap = new Map(moodOptions.map((m) => [m.label, m.value]));
@@ -451,7 +449,7 @@ export const getNotesCalendar = asyncHandler(
       return {
         date: note.date,
         dayOfMonth,
-        id: note.id,
+        _id: note._id,
         hasContent: note.content.length > 0,
         contentPreview:
           note.content.length > 100

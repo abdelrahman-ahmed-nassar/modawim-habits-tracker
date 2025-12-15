@@ -1,5 +1,5 @@
 import type { Response } from "express";
-import { asyncHandler, AppError } from "../middleware/errorHandler";
+import { asyncHandler, AppError, ErrorCodes } from "../middleware/errorHandler";
 import type { AuthenticatedRequest } from "../types/auth";
 import {
   loginUser,
@@ -28,7 +28,7 @@ export const register = asyncHandler(
       success: true,
       data: {
         user: {
-          id: user.id,
+          _id: user._id,
           name: user.name,
           email: user.email,
           createdAt: user.createdAt,
@@ -43,10 +43,14 @@ export const register = asyncHandler(
 export const deleteAccountController = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
-      throw new AppError("Authentication required", 401);
+      throw new AppError(
+        "Authentication required",
+        401,
+        ErrorCodes.AUTHENTICATION_REQUIRED
+      );
     }
 
-    await deleteAccount(req.user.id);
+    await deleteAccount(req.user._id);
 
     res.status(200).json({
       success: true,
@@ -72,7 +76,7 @@ export const login = asyncHandler(
       success: true,
       data: {
         user: {
-          id: user.id,
+          _id: user._id,
           name: user.name,
           email: user.email,
           createdAt: user.createdAt,
@@ -87,18 +91,22 @@ export const login = asyncHandler(
 export const me = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
-      throw new AppError("Authentication required", 401);
+      throw new AppError(
+        "Authentication required",
+        401,
+        ErrorCodes.AUTHENTICATION_REQUIRED
+      );
     }
 
-    const user = await getUserById(req.user.id);
+    const user = await getUserById(req.user._id);
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new AppError("User not found", 401, ErrorCodes.USER_NOT_FOUND);
     }
 
     res.status(200).json({
       success: true,
       data: {
-        id: user.id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         createdAt: user.createdAt,
@@ -111,25 +119,33 @@ export const me = asyncHandler(
 export const updateProfile = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
-      throw new AppError("Authentication required", 401);
+      throw new AppError(
+        "Authentication required",
+        401,
+        ErrorCodes.AUTHENTICATION_REQUIRED
+      );
     }
     const { name } = req.body as { name?: string };
     if (!name || !name.trim()) {
       throw new AppError("Name is required", 400);
     }
 
-    const user = await getUserById(req.user.id);
+    const user = await getUserById(req.user._id);
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new AppError("User not found", 401, ErrorCodes.USER_NOT_FOUND);
     }
 
-    const updated = { ...user, name: name.trim(), updatedAt: new Date().toISOString() };
+    const updated = {
+      ...user,
+      name: name.trim(),
+      updatedAt: new Date().toISOString(),
+    };
     await saveUser(updated);
 
     res.status(200).json({
       success: true,
       data: {
-        id: updated.id,
+        _id: updated._id,
         name: updated.name,
         email: updated.email,
         createdAt: updated.createdAt,
@@ -143,7 +159,11 @@ export const updateProfile = asyncHandler(
 export const changePassword = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
-      throw new AppError("Authentication required", 401);
+      throw new AppError(
+        "Authentication required",
+        401,
+        ErrorCodes.AUTHENTICATION_REQUIRED
+      );
     }
     const { currentPassword, newPassword } = req.body as {
       currentPassword?: string;
@@ -154,18 +174,22 @@ export const changePassword = asyncHandler(
       throw new AppError("Current and new password are required", 400);
     }
 
-    const user = await getUserById(req.user.id);
+    const user = await getUserById(req.user._id);
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new AppError("User not found", 401, ErrorCodes.USER_NOT_FOUND);
     }
 
     const valid = await verifyPassword(currentPassword, user.passwordHash);
     if (!valid) {
-      throw new AppError("Current password is incorrect", 400);
+      throw new AppError("INVALID_CURRENT_PASSWORD", 400);
     }
 
     const passwordHash = await hashPassword(newPassword);
-    const updated = { ...user, passwordHash, updatedAt: new Date().toISOString() };
+    const updated = {
+      ...user,
+      passwordHash,
+      updatedAt: new Date().toISOString(),
+    };
     await saveUser(updated);
 
     res.status(200).json({

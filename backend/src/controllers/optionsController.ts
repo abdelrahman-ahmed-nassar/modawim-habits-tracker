@@ -1,11 +1,11 @@
 import { Response } from "express";
 import * as optionsService from "../services/optionsService";
-import { asyncHandler } from "../middleware/errorHandler";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
 import type { AuthenticatedRequest } from "../types/auth";
 
 export const getMoods = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const moods = await optionsService.getMoods(userId);
 
     // If the legacy flag is set, only return the labels for backward compatibility
@@ -27,22 +27,23 @@ export const getMoods = asyncHandler(
 
 export const addMood = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const { mood } = req.body;
     if (!mood || typeof mood !== "string") {
-      throw new Error("Invalid mood value");
+      throw new AppError("Invalid mood value", 400);
     }
     const moods = await optionsService.addMood(userId, mood);
     res.status(201).json({
       success: true,
       data: moods,
+      message: "Mood added successfully",
     });
   }
 );
 
 export const removeMood = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const { mood } = req.params;
     const moods = await optionsService.removeMood(userId, mood);
     res.status(200).json({
@@ -54,7 +55,7 @@ export const removeMood = asyncHandler(
 
 export const getProductivityLevels = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const levels = await optionsService.getProductivityLevels(userId);
 
     // If the legacy flag is set, only return the labels for backward compatibility
@@ -76,22 +77,23 @@ export const getProductivityLevels = asyncHandler(
 
 export const addProductivityLevel = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const { level } = req.body;
     if (!level || typeof level !== "string") {
-      throw new Error("Invalid productivity level value");
+      throw new AppError("Invalid productivity level value", 400);
     }
     const levels = await optionsService.addProductivityLevel(userId, level);
     res.status(201).json({
       success: true,
       data: levels,
+      message: "Productivity level added successfully",
     });
   }
 );
 
 export const removeProductivityLevel = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!._id;
     const { level } = req.params;
     const levels = await optionsService.removeProductivityLevel(userId, level);
     res.status(200).json({

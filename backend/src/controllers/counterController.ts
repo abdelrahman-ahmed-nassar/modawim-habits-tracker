@@ -1,5 +1,4 @@
 import { Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import {
   Counter,
   CreateCounterRequest,
@@ -24,7 +23,7 @@ const getUserOrThrow = async (userId: string) => {
  */
 export const getAllCounters = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const user = await getUserOrThrow(req.user!.id);
+    const user = await getUserOrThrow(req.user!._id);
     const counters = user.counters || [];
 
     res.status(200).json({
@@ -41,9 +40,9 @@ export const getAllCounters = asyncHandler(
 export const getCounterById = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-    const user = await getUserOrThrow(req.user!.id);
+    const user = await getUserOrThrow(req.user!._id);
     const counters = user.counters || [];
-    const counter = counters.find((c) => c.id === id);
+    const counter = counters.find((c) => c._id.toString() === id);
 
     if (!counter) {
       throw new AppError(`Counter with ID ${id} not found`, 404);
@@ -62,7 +61,7 @@ export const getCounterById = asyncHandler(
  */
 export const createCounter = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const user = await getUserOrThrow(req.user!.id);
+    const user = await getUserOrThrow(req.user!._id);
     const counterData: CreateCounterRequest = req.body;
 
     // Validate counter data
@@ -77,8 +76,7 @@ export const createCounter = asyncHandler(
     const counters = user.counters || [];
     const now = new Date().toISOString();
 
-    const newCounter: Counter = {
-      id: uuidv4(),
+    const newCounterData = {
       name: counterData.name.trim(),
       goal: counterData.goal,
       motivationNote: counterData.motivationNote?.trim() || "",
@@ -87,12 +85,17 @@ export const createCounter = asyncHandler(
       updatedAt: now,
     };
 
-    const updatedCounters = [...counters, newCounter];
-    await saveUser({ ...user, counters: updatedCounters });
+    // Cast to any to allow adding subdocument without _id (Mongoose will generate it)
+    const updatedCounters = [...counters, newCounterData] as typeof counters;
+    const updatedUser = await saveUser({ ...user, counters: updatedCounters });
+
+    // Get the newly created counter (last one in the array, now with _id)
+    const createdCounter =
+      updatedUser.counters[updatedUser.counters.length - 1];
 
     res.status(201).json({
       success: true,
-      data: newCounter,
+      data: createdCounter,
       message: "Counter created successfully",
     });
   }
@@ -104,7 +107,7 @@ export const createCounter = asyncHandler(
  */
 export const updateCounter = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const user = await getUserOrThrow(req.user!.id);
+    const user = await getUserOrThrow(req.user!._id);
     const { id } = req.params;
     const updateData: UpdateCounterRequest = req.body;
 
@@ -118,7 +121,7 @@ export const updateCounter = asyncHandler(
     }
 
     const counters = user.counters || [];
-    const counterIndex = counters.findIndex((c) => c.id === id);
+    const counterIndex = counters.findIndex((c) => c._id.toString() === id);
 
     if (counterIndex === -1) {
       throw new AppError(`Counter with ID ${id} not found`, 404);
@@ -152,7 +155,7 @@ export const updateCounter = asyncHandler(
  */
 export const patchCounterCount = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const user = await getUserOrThrow(req.user!.id);
+    const user = await getUserOrThrow(req.user!._id);
     const { id } = req.params;
     const patchData: PatchCounterRequest = req.body;
 
@@ -165,7 +168,7 @@ export const patchCounterCount = asyncHandler(
     }
 
     const counters = user.counters || [];
-    const counterIndex = counters.findIndex((c) => c.id === id);
+    const counterIndex = counters.findIndex((c) => c._id.toString() === id);
 
     if (counterIndex === -1) {
       throw new AppError(`Counter with ID ${id} not found`, 404);
@@ -194,17 +197,17 @@ export const patchCounterCount = asyncHandler(
  */
 export const deleteCounter = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const user = await getUserOrThrow(req.user!.id);
+    const user = await getUserOrThrow(req.user!._id);
     const { id } = req.params;
 
     const counters = user.counters || [];
-    const counterIndex = counters.findIndex((c) => c.id === id);
+    const counterIndex = counters.findIndex((c) => c._id.toString() === id);
 
     if (counterIndex === -1) {
       throw new AppError(`Counter with ID ${id} not found`, 404);
     }
 
-    const updatedCounters = counters.filter((c) => c.id !== id);
+    const updatedCounters = counters.filter((c) => c._id.toString() !== id);
     await saveUser({ ...user, counters: updatedCounters });
 
     res.status(200).json({

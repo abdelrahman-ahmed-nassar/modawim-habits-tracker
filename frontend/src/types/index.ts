@@ -17,15 +17,12 @@ export interface LoadingState {
 export interface ApiConfig {
   baseURL?: string;
   timeout?: number;
-  retryAttempts?: number;
-  retryDelay?: number;
 }
 
 // Request configuration
 export interface RequestConfig {
   params?: Record<string, any>;
   headers?: Record<string, string>;
-  retry?: boolean;
 }
 
 // Error types

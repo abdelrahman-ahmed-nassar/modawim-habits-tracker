@@ -22,7 +22,7 @@ export class TemplatesService {
    * Create a new template
    */
   static async createTemplate(
-    template: Omit<NoteTemplate, "id" | "createdAt" | "updatedAt">
+    template: Omit<NoteTemplate, "_id" | "createdAt" | "updatedAt">
   ): Promise<NoteTemplate> {
     const res = await apiService.post<NoteTemplate>("/templates", template);
     return res.data;
@@ -33,7 +33,7 @@ export class TemplatesService {
    */
   static async updateTemplate(
     id: string,
-    template: Partial<Omit<NoteTemplate, "id" | "createdAt" | "updatedAt">>
+    template: Partial<Omit<NoteTemplate, "_id" | "createdAt" | "updatedAt">>
   ): Promise<NoteTemplate> {
     const res = await apiService.put<NoteTemplate>(
       `/templates/${id}`,

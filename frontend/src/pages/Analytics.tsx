@@ -33,7 +33,7 @@ const HabitCard: React.FC<HabitCardProps> = ({ habit, onClick }) => {
   return (
     <Card
       className="cursor-pointer hover:shadow-lg transition-all duration-200"
-      onClick={() => onClick(habit.id)}
+      onClick={() => onClick(habit._id)}
     >
       <div className="p-4">
         <div className="flex items-center justify-between">
@@ -464,7 +464,7 @@ const Analytics: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {habits.map((habit) => (
                 <HabitCard
-                  key={habit.id}
+                  key={habit._id}
                   habit={habit}
                   onClick={handleHabitClick}
                 />

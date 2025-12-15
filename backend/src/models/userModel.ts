@@ -19,18 +19,16 @@ const ProductivityLevelSchema = new Schema(
 
 const NoteTemplateSchema = new Schema(
   {
-    id: { type: String, required: true },
     name: { type: String, required: true },
     template: { type: String, required: true },
     createdAt: { type: String },
     updatedAt: { type: String },
   },
-  { _id: false }
+  { _id: true }
 );
 
 const CounterSchema = new Schema(
   {
-    id: { type: String, required: true },
     name: { type: String, required: true },
     goal: { type: Number, required: true },
     motivationNote: { type: String, required: true },
@@ -38,7 +36,7 @@ const CounterSchema = new Schema(
     createdAt: { type: String, required: true },
     updatedAt: { type: String, required: true },
   },
-  { _id: false }
+  { _id: true }
 );
 
 const SettingsSchema = new Schema(
@@ -50,7 +48,6 @@ const SettingsSchema = new Schema(
 
 const UserSchema = new Schema<User>(
   {
-    id: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true, index: true },
     passwordHash: { type: String, required: true },
     name: { type: String, required: true },

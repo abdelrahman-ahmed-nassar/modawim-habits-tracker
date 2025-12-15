@@ -1,53 +1,58 @@
-import { v4 as uuidv4 } from "uuid";
-import { DailyNote } from "@shared/types";
-import { DailyNoteModel } from "../models/dailyNoteModel";
-import { toPlain } from "./dataServiceUtils";
+import type { DailyNote } from "@shared/types";
+import {
+  findAllNotes,
+  findNotesByUserId,
+  findNoteByDate,
+  findNoteByUserIdAndDate,
+  upsertNoteByDate,
+  updateNoteDocument,
+  deleteNoteDocument,
+  deleteNotesByUserId as deleteNotesByUserIdRepo,
+} from "../repositories/noteRepository";
 
 /**
- * Get all daily notes
+ * Get all daily notes (use getNotesByUserId for better performance)
  */
 export const getNotes = async (): Promise<DailyNote[]> => {
-  const notes = await DailyNoteModel.find().lean<DailyNote[]>();
-  return notes;
+  return findAllNotes();
 };
 
 /**
- * Get a note by date
+ * Get all notes for a specific user (uses userId index - preferred)
+ */
+export const getNotesByUserId = async (
+  userId: string
+): Promise<DailyNote[]> => {
+  return findNotesByUserId(userId);
+};
+
+/**
+ * Get a note by date (deprecated - use getNoteByUserIdAndDate)
  */
 export const getNoteByDate = async (
   date: string
 ): Promise<DailyNote | null> => {
-  const note = await DailyNoteModel.findOne({ date }).lean<DailyNote | null>();
-  return note || null;
+  return findNoteByDate(date);
+};
+
+/**
+ * Get a note by userId and date (uses compound unique index - optimal)
+ */
+export const getNoteByUserIdAndDate = async (
+  userId: string,
+  date: string
+): Promise<DailyNote | null> => {
+  return findNoteByUserIdAndDate(userId, date);
 };
 
 /**
  * Create or update a daily note
  */
 export const saveNote = async (
-  noteData: Omit<DailyNote, "id" | "createdAt" | "updatedAt">
+  noteData: Omit<DailyNote, "_id" | "createdAt" | "updatedAt">
 ): Promise<DailyNote> => {
-  const now = new Date().toISOString();
-
-  const existing = await DailyNoteModel.findOne({ date: noteData.date });
-  if (existing) {
-    existing.content = noteData.content;
-    existing.mood = noteData.mood;
-    existing.productivityLevel = noteData.productivityLevel;
-    existing.updatedAt = now;
-    await existing.save();
-    return toPlain<DailyNote>(existing);
-  }
-
-  const newNote: DailyNote = {
-    id: uuidv4(),
-    ...noteData,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  const created = await DailyNoteModel.create(newNote);
-  return toPlain<DailyNote>(created);
+  // Repository keeps the exact same upsert semantics
+  return upsertNoteByDate(noteData);
 };
 
 /**
@@ -55,30 +60,21 @@ export const saveNote = async (
  */
 export const updateNote = async (
   id: string,
-  noteData: Partial<Omit<DailyNote, "id" | "createdAt" | "updatedAt">>
+  noteData: Partial<Omit<DailyNote, "_id" | "createdAt" | "updatedAt">>
 ): Promise<DailyNote | null> => {
-  const now = new Date().toISOString();
-  const updatedNote = await DailyNoteModel.findOneAndUpdate(
-    { id },
-    { ...noteData, updatedAt: now },
-    { new: true }
-  ).lean<DailyNote | null>();
-
-  return updatedNote || null;
+  return updateNoteDocument(id, noteData);
 };
 
 /**
  * Delete a note
  */
 export const deleteNote = async (id: string): Promise<boolean> => {
-  const result = await DailyNoteModel.deleteOne({ id });
-  return result.deletedCount === 1;
+  return deleteNoteDocument(id);
 };
 
 /**
  * Delete all notes for a given user
  */
 export const deleteNotesByUserId = async (userId: string): Promise<void> => {
-  await DailyNoteModel.deleteMany({ userId });
+  await deleteNotesByUserIdRepo(userId);
 };
-

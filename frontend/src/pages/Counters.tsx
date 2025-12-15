@@ -35,13 +35,13 @@ const Counters: React.FC = () => {
   }, []);
 
   const handleIncrement = async (counter: Counter) => {
-    const counterId = counter.id;
+    const counterId = counter._id;
     setUpdatingCounters((prev) => new Set(prev).add(counterId));
 
     // Optimistically update the UI
     setCounters((prevCounters) =>
       prevCounters.map((c) =>
-        c.id === counterId ? { ...c, currentCount: c.currentCount + 1 } : c
+          c._id === counterId ? { ...c, currentCount: c.currentCount + 1 } : c
       )
     );
 
@@ -64,13 +64,13 @@ const Counters: React.FC = () => {
   const handleDecrement = async (counter: Counter) => {
     if (counter.currentCount === 0) return;
 
-    const counterId = counter.id;
+    const counterId = counter._id;
     setUpdatingCounters((prev) => new Set(prev).add(counterId));
 
     // Optimistically update the UI
     setCounters((prevCounters) =>
       prevCounters.map((c) =>
-        c.id === counterId
+        c._id === counterId
           ? { ...c, currentCount: Math.max(0, c.currentCount - 1) }
           : c
       )
@@ -113,11 +113,11 @@ const Counters: React.FC = () => {
   const renderCounterCard = (counter: Counter) => {
     const progress =
       counter.goal > 0 ? (counter.currentCount / counter.goal) * 100 : 0;
-    const isUpdating = updatingCounters.has(counter.id);
+    const isUpdating = updatingCounters.has(counter._id);
     const isComplete = counter.currentCount >= counter.goal;
 
     return (
-      <Card key={counter.id} className={isComplete ? "border-green-500" : ""}>
+      <Card key={counter._id} className={isComplete ? "border-green-500" : ""}>
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">

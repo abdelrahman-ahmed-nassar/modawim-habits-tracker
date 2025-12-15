@@ -107,7 +107,7 @@ const HabitsManager: React.FC = () => {
     });
     setSelectedDays(habit.specificDays || []);
     setFormMode("edit");
-    setCurrentHabitId(habit.id);
+    setCurrentHabitId(habit._id);
     setShowForm(true);
   };
 
@@ -213,7 +213,7 @@ const HabitsManager: React.FC = () => {
         isActive: !habit.isActive,
       };
 
-      await habitsService.updateHabit(habit.id, updateRequest);
+      await habitsService.updateHabit(habit._id, updateRequest);
       toast.success(`تم ${!habit.isActive ? "تفعيل" : "إيقاف"} العادة بنجاح`);
       await fetchHabits();
     } catch (err) {
@@ -269,7 +269,7 @@ const HabitsManager: React.FC = () => {
   const handleSaveReorder = async () => {
     try {
       setIsSubmitting(true);
-      const habitIds = reorderedHabits.map((h) => h.id);
+      const habitIds = reorderedHabits.map((h) => h._id);
       await habitsService.reorderHabits(habitIds);
       toast.success("تم حفظ الترتيب بنجاح");
       await fetchHabits();
@@ -342,7 +342,7 @@ const HabitsManager: React.FC = () => {
 
   // Render a habit card
   const renderHabitCard = (habit: Habit) => (
-    <Card key={habit.id}>
+    <Card key={habit._id}>
       <CardContent
         className={`p-4 ${habit.isActive === false ? "opacity-70" : ""}`}
       >
@@ -362,7 +362,7 @@ const HabitsManager: React.FC = () => {
             </button>
             <button
               className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-              onClick={() => handleDelete(habit.id)}
+              onClick={() => handleDelete(habit._id)}
             >
               <Trash2 size={16} />
             </button>
@@ -478,7 +478,7 @@ const HabitsManager: React.FC = () => {
             <div className="space-y-2">
               {reorderedHabits.map((habit, index) => (
                 <div
-                  key={habit.id}
+                  key={habit._id}
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}

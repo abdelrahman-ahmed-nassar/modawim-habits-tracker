@@ -169,32 +169,5 @@ export const validateDailyNote = async (
     });
   }
 
-  // Validate mood if provided
-  if (noteData.mood !== undefined) {
-    const defaultUser = await getUserById("sample-user-id");
-    const moods = defaultUser?.moods || [];
-    if (moods.length > 0 && !moods.some((m) => m.label === noteData.mood)) {
-      errors.push({
-        field: "mood",
-        message: "Invalid mood value",
-      });
-    }
-  }
-
-  // Validate productivity level if provided
-  if (noteData.productivityLevel !== undefined) {
-    const defaultUser = (await getUserById("sample-user-id")) as User | null;
-    const levels = defaultUser?.productivityLevels || [];
-    if (
-      levels.length > 0 &&
-      !levels.some((l) => l.label === noteData.productivityLevel)
-    ) {
-      errors.push({
-        field: "productivityLevel",
-        message: "Invalid productivity level value",
-      });
-    }
-  }
-
   return errors;
 };

@@ -45,7 +45,7 @@ export default function HabitsList() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {habits.map((habit) => (
           <div
-            key={habit.id}
+            key={habit._id}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6"
           >
             <h2 className="text-xl font-semibold mb-2">{habit.name}</h2>

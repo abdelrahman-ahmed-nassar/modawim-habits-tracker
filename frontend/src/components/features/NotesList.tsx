@@ -324,9 +324,9 @@ const NotesList: React.FC<NotesListProps> = ({
         ) : (
           filteredAndSortedNotes.map((note) => (
             <Card
-              key={note.id}
+              key={note._id}
               className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                selectedNote?.id === note.id
+                selectedNote?._id === note._id
                   ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
                   : "hover:border-gray-300 dark:hover:border-gray-600"
               }`}

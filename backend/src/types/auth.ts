@@ -10,5 +10,5 @@ export interface AuthTokenPayload {
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: Pick<User, "id" | "email" | "name">;
+  user?: Pick<User, "_id" | "email" | "name">;
 }

@@ -99,10 +99,11 @@ const WeeklyAnalytics: React.FC<WeeklyAnalyticsProps> = ({ analytics }) => {
   // Get top 5 performing habits
   const topHabits = sortedHabitStats.slice(0, 5);
 
-  // Get bottom 5 performing habits
+  // Get bottom 5 performing habits, sorted from worst to best
   const bottomHabits = [...sortedHabitStats]
     .filter((habit) => habit.activeDaysCount > 0) // Only consider habits that were active
-    .slice(-5);
+    .slice(-5)
+    .sort((a, b) => a.successRate - b.successRate); // Sort worst performing first
 
   return (
     <div className="space-y-6">
@@ -146,7 +147,7 @@ const WeeklyAnalytics: React.FC<WeeklyAnalyticsProps> = ({ analytics }) => {
               </span>
             </div>
             <div className="text-sm text-green-600 dark:text-green-400 mt-1 font-medium">
-              {analytics.weeklyStats?.mostProductiveDay?.completionRate || 0}%
+              {(analytics.weeklyStats?.mostProductiveDay?.completionRate || 0).toFixed(1)}%
               تم الإنجاز
             </div>
           </div>
@@ -336,8 +337,8 @@ const WeeklyAnalytics: React.FC<WeeklyAnalyticsProps> = ({ analytics }) => {
                   من أصل{" "}
                   {analytics.weeklyStats?.mostProductiveDay?.totalHabits || 0}{" "}
                   عادة (
-                  {analytics.weeklyStats?.mostProductiveDay?.completionRate ||
-                    0}
+                  {(analytics.weeklyStats?.mostProductiveDay?.completionRate ||
+                    0).toFixed(1)}
                   %).
                 </p>
               </div>
@@ -362,8 +363,8 @@ const WeeklyAnalytics: React.FC<WeeklyAnalyticsProps> = ({ analytics }) => {
                   من أصل{" "}
                   {analytics.weeklyStats?.leastProductiveDay?.totalHabits || 0}{" "}
                   عادة (
-                  {analytics.weeklyStats?.leastProductiveDay?.completionRate ||
-                    0}
+                  {(analytics.weeklyStats?.leastProductiveDay?.completionRate ||
+                    0).toFixed(1)}
                   %).
                 </p>
               </div>

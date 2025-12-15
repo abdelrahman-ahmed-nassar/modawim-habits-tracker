@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import { CompletionRecord } from "@shared/types";
 import { validateCompletion } from "../utils/validation";
 import * as dataService from "../services/dataService";
@@ -20,17 +19,21 @@ export const getDailyCompletions = asyncHandler(
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
     }
 
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === userId);
-    const activeHabitIds = habits.filter((h) => h.isActive).map((h) => h.id);
+    // Use DB-level filters for userId + isActive and userId + date
+    const activeHabits = await dataService.getActiveHabitsByUserId(userId);
+    const activeHabitIds = new Set(activeHabits.map((h) => h._id.toString()));
 
-    const allCompletions = await dataService.getCompletionsByDate(date);
+    // Get completions for this user and date (uses compound query)
+    const completions = await dataService.getCompletionsByUserIdAndDate(
+      userId,
+      date
+    );
 
-    // Filter completions to only include active habits
-    const filteredCompletions = allCompletions.filter(
-      (c: CompletionRecord) => activeHabitIds.includes(c.habitId)
+    // Filter to only include active habits
+    const filteredCompletions = completions.filter((c: CompletionRecord) =>
+      activeHabitIds.has(c.habitId.toString())
     );
 
     res.status(200).json({
@@ -50,7 +53,7 @@ export const getHabitCompletions = asyncHandler(
     const { startDate, endDate } = req.query;
 
     const habit = await dataService.getHabitById(habitId);
-    if (!habit || habit.userId !== req.user!.id) {
+    if (!habit || habit.userId.toString() !== req.user!._id.toString()) {
       throw new AppError(`Habit with ID ${habitId} not found`, 404);
     }
 
@@ -108,7 +111,7 @@ export const markHabitComplete = asyncHandler(
     }
 
     const habit = await dataService.getHabitById(targetHabitId);
-    if (!habit || habit.userId !== req.user!.id) {
+    if (!habit || habit.userId.toString() !== req.user!._id.toString()) {
       throw new AppError(`Habit with ID ${targetHabitId} not found`, 404);
     }
 
@@ -163,7 +166,7 @@ export const deleteCompletion = asyncHandler(
     }
 
     const habit = await dataService.getHabitById(targetHabitId);
-    if (!habit || habit.userId !== req.user!.id) {
+    if (!habit || habit.userId.toString() !== req.user!._id.toString()) {
       throw new AppError(`Habit with ID ${targetHabitId} not found`, 404);
     }
 
@@ -215,20 +218,21 @@ export const getCompletionsInRange = asyncHandler(
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
     }
 
-    const userId = req.user!.id;
+    const userId = req.user!._id;
 
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === userId);
-    const activeHabitIds = habits.filter((h) => h.isActive).map((h) => h.id);
+    // Use DB-level userId filter (uses index)
+    const activeHabits = await dataService.getActiveHabitsByUserId(userId);
+    const activeHabitIds = new Set(activeHabits.map((h) => h._id.toString()));
 
-    const completions = await dataService.getCompletions();
+    // Get completions for this user (uses userId index)
+    const completions = await dataService.getCompletionsByUserId(userId);
 
     // Filter by date range (inclusive) and only include active habits
     const filtered = completions.filter(
       (c) =>
         c.date >= startDate &&
         c.date <= endDate &&
-        activeHabitIds.includes(c.habitId)
+        activeHabitIds.has(c.habitId.toString())
     );
 
     res.status(200).json({
@@ -247,17 +251,24 @@ export const updateCompletion = asyncHandler(
     const { id } = req.params;
     const { completed } = req.body;
 
-    // Get all completions to find the one to update
-    const completions = await dataService.getCompletions();
+    // Completion ID format is "habitId-YYYYMMDD", extract habitId
+    const [habitId] = id.split("-");
+    if (!habitId) {
+      throw new AppError(`Invalid completion ID format`, 400);
+    }
+
+    // Get the habit to verify ownership
+    const habit = await dataService.getHabitById(habitId);
+    if (!habit || habit.userId.toString() !== req.user!._id.toString()) {
+      throw new AppError(`Habit with ID ${habitId} not found`, 404);
+    }
+
+    // Get completions for this specific habit (much more efficient)
+    const completions = await dataService.getCompletionsByHabitId(habitId);
     const completion = completions.find((c) => c.id === id);
 
     if (!completion) {
       throw new AppError(`Completion with ID ${id} not found`, 404);
-    }
-
-    const habit = await dataService.getHabitById(completion.habitId);
-    if (!habit || habit.userId !== req.user!.id) {
-      throw new AppError(`Habit with ID ${completion.habitId} not found`, 404);
     }
 
     // Prevent updating completions for inactive habits
@@ -317,12 +328,10 @@ export const createCompletionsBatch = asyncHandler(
       Omit<CompletionRecord, "id" | "completedAt">
     > = [];
 
-    // Get all habits to check active status
-    const userId = req.user!.id;
-
-    const allHabits = await dataService.getHabits();
-    const habits = allHabits.filter((h) => h.userId === userId);
-    const activeHabitIds = habits.filter((h) => h.isActive).map((h) => h.id);
+    // Get all habits to check active status (uses DB-level filter)
+    const userId = req.user!._id;
+    const habits = await dataService.getHabitsByUserId(userId);
+    const habitMap = new Map(habits.map((h) => [h._id.toString(), h]));
 
     for (const completionData of completions) {
       const { habitId, date, completed } = completionData;
@@ -332,9 +341,9 @@ export const createCompletionsBatch = asyncHandler(
         throw new AppError("Each completion must have habitId and date", 400);
       }
 
-      // Check if habit exists
-      const habit = await dataService.getHabitById(habitId);
-      if (!habit || habit.userId !== req.user!.id) {
+      // Check if habit exists (from pre-fetched map - no extra DB call)
+      const habit = habitMap.get(habitId.toString());
+      if (!habit) {
         throw new AppError(`Habit with ID ${habitId} not found`, 404);
       }
 

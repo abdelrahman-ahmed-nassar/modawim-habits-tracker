@@ -1,56 +1,55 @@
-import { v4 as uuidv4 } from "uuid";
+import type { Habit, CompletionRecord, HabitAnalytics } from "@shared/types";
 import {
-  Habit,
-  CompletionRecord,
-  HabitAnalytics,
-} from "@shared/types";
-import { HabitModel } from "../models/habitModel";
-import { toPlain } from "./dataServiceUtils";
+  findAllHabits,
+  findHabitsByUserId,
+  findActiveHabitsByUserId,
+  findHabitById,
+  insertHabit,
+  updateHabitDocument,
+  deleteHabitDocument,
+  replaceUserHabitsDocuments,
+  deleteHabitsByUserId as deleteHabitsByUserIdRepo,
+  findAllCompletionsDerived,
+  findCompletionsByUserIdDerived,
+  findCompletionsByHabitIdDerived,
+  findCompletionsByDateDerived,
+  findCompletionsByUserIdAndDateDerived,
+  findCompletionsByUserIdInDateRangeDerived,
+  upsertCompletionOnHabit,
+  applyCompletionsBatchOnHabits,
+  removeCompletionFromHabit,
+  updateCompletionOnHabit,
+  replaceAllCompletionsOnHabits,
+} from "../repositories/habitRepository";
 
-// Date helpers for YYYY-MM-DD <-> YYYYMMDD integer conversion (UTC-based)
-const dateStrToInt = (dateStr: string): number =>
-  parseInt(dateStr.replace(/-/g, ""), 10);
-
-const dateIntToStr = (dateInt: number): string => {
-  const padded = dateInt.toString().padStart(8, "0");
-  const year = padded.slice(0, 4);
-  const month = padded.slice(4, 6);
-  const day = padded.slice(6, 8);
-  return `${year}-${month}-${day}`;
-};
-
-const buildCompletionId = (habitId: string, dateInt: number): string =>
-  `${habitId}-${dateInt}`;
-
-const completionFromDay = (
-  habitId: string,
-  dateInt: number,
-  completed: boolean
-): CompletionRecord => {
-  const dateStr = dateIntToStr(dateInt);
-  return {
-    id: buildCompletionId(habitId, dateInt),
-    habitId,
-    date: dateStr,
-    completed,
-    completedAt: `${dateStr}T00:00:00.000Z`,
-  };
+/**
+ * Get all habits (use getHabitsByUserId for better performance)
+ */
+export const getHabits = async (): Promise<Habit[]> => {
+  return findAllHabits();
 };
 
 /**
- * Get all habits
+ * Get all habits for a specific user (uses userId index - preferred)
  */
-export const getHabits = async (): Promise<Habit[]> => {
-  const habits = await HabitModel.find().lean<Habit[]>();
-  return habits;
+export const getHabitsByUserId = async (userId: string): Promise<Habit[]> => {
+  return findHabitsByUserId(userId);
+};
+
+/**
+ * Get active habits for a specific user (uses compound index)
+ */
+export const getActiveHabitsByUserId = async (
+  userId: string
+): Promise<Habit[]> => {
+  return findActiveHabitsByUserId(userId);
 };
 
 /**
  * Get a habit by ID
  */
 export const getHabitById = async (id: string): Promise<Habit | null> => {
-  const habit = await HabitModel.findOne({ id }).lean<Habit | null>();
-  return habit || null;
+  return findHabitById(id);
 };
 
 /**
@@ -59,7 +58,7 @@ export const getHabitById = async (id: string): Promise<Habit | null> => {
 export const createHabit = async (
   habitData: Omit<
     Habit,
-    | "id"
+    | "_id"
     | "createdAt"
     | "currentStreak"
     | "bestStreak"
@@ -67,19 +66,8 @@ export const createHabit = async (
     | "isActive"
   >
 ): Promise<Habit> => {
-  const newHabit: Habit = {
-    id: uuidv4(),
-    ...habitData,
-    currentStreak: 0,
-    bestStreak: 0,
-    currentCounter: 0,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    completedDays: [],
-  };
-
-  const created = await HabitModel.create(newHabit);
-  return toPlain<Habit>(created);
+  // Repository ensures the same initialization of streak fields and timestamps
+  return insertHabit(habitData);
 };
 
 /**
@@ -89,38 +77,32 @@ export const updateHabit = async (
   id: string,
   habitData: Partial<Habit>
 ): Promise<Habit | null> => {
-  const { id: _omit, createdAt, ...updateData } = habitData;
-
-  const updated = await HabitModel.findOneAndUpdate({ id }, updateData, {
-    new: true,
-  }).lean<Habit | null>();
-
-  return updated || null;
+  return updateHabitDocument(id, habitData);
 };
 
 /**
  * Delete a habit
  */
 export const deleteHabit = async (id: string): Promise<boolean> => {
-  const result = await HabitModel.deleteOne({ id });
-  return result.deletedCount === 1;
+  return deleteHabitDocument(id);
 };
 
 /**
- * Replace all habits with a new set
+ * Replace all habits for a specific user with a new set
+ * IMPORTANT: Only affects habits belonging to the given userId
  */
-export const replaceAllHabits = async (habits: Habit[]): Promise<void> => {
-  await HabitModel.deleteMany({});
-  if (habits.length > 0) {
-    await HabitModel.insertMany(habits);
-  }
+export const replaceAllHabits = async (
+  userId: string,
+  habits: Habit[]
+): Promise<void> => {
+  await replaceUserHabitsDocuments(userId, habits);
 };
 
 /**
  * Delete all habits for a given user
  */
 export const deleteHabitsByUserId = async (userId: string): Promise<void> => {
-  await HabitModel.deleteMany({ userId });
+  await deleteHabitsByUserIdRepo(userId);
 };
 
 /**
@@ -128,15 +110,31 @@ export const deleteHabitsByUserId = async (userId: string): Promise<void> => {
  */
 const habitCompletedDaysToCompletions = (habit: Habit): CompletionRecord[] => {
   const days = habit.completedDays || [];
-  return days.map((dayInt) => completionFromDay(habit.id, dayInt, true));
+  // Keep local helper for streak calculations (repository has its own copy
+  // for persistence operations)
+  return days.map((dayInt) => ({
+    id: `${habit._id}-${dayInt}`,
+    habitId: habit._id,
+    date: "", // date is not used in streak calculations here
+    completed: true,
+    completedAt: "",
+  }));
 };
 
 /**
- * Get all completion records (derived from habits.completedDays)
+ * Get all completion records (use getCompletionsByUserId for better performance)
  */
 export const getCompletions = async (): Promise<CompletionRecord[]> => {
-  const habits = await getHabits();
-  return habits.flatMap(habitCompletedDaysToCompletions);
+  return findAllCompletionsDerived();
+};
+
+/**
+ * Get all completion records for a specific user (uses userId index - preferred)
+ */
+export const getCompletionsByUserId = async (
+  userId: string
+): Promise<CompletionRecord[]> => {
+  return findCompletionsByUserIdDerived(userId);
 };
 
 /**
@@ -145,9 +143,7 @@ export const getCompletions = async (): Promise<CompletionRecord[]> => {
 export const getCompletionsByHabitId = async (
   habitId: string
 ): Promise<CompletionRecord[]> => {
-  const habit = await getHabitById(habitId);
-  if (!habit) return [];
-  return habitCompletedDaysToCompletions(habit);
+  return findCompletionsByHabitIdDerived(habitId);
 };
 
 /**
@@ -156,12 +152,28 @@ export const getCompletionsByHabitId = async (
 export const getCompletionsByDate = async (
   date: string
 ): Promise<CompletionRecord[]> => {
-  const targetInt = dateStrToInt(date);
-  const habits = await HabitModel.find({
-    completedDays: targetInt,
-  }).lean<Habit[]>();
+  return findCompletionsByDateDerived(date);
+};
 
-  return habits.map((h) => completionFromDay(h.id, targetInt, true));
+/**
+ * Get completion records for a specific user and date (uses both indexes - optimal)
+ */
+export const getCompletionsByUserIdAndDate = async (
+  userId: string,
+  date: string
+): Promise<CompletionRecord[]> => {
+  return findCompletionsByUserIdAndDateDerived(userId, date);
+};
+
+/**
+ * Get completion records for a user within a date range (optimized for range queries)
+ */
+export const getCompletionsByUserIdInDateRange = async (
+  userId: string,
+  startDate: string,
+  endDate: string
+): Promise<CompletionRecord[]> => {
+  return findCompletionsByUserIdInDateRangeDerived(userId, startDate, endDate);
 };
 
 /**
@@ -170,25 +182,15 @@ export const getCompletionsByDate = async (
 export const createCompletion = async (
   completionData: Omit<CompletionRecord, "id" | "completedAt">
 ): Promise<CompletionRecord> => {
-  const { habitId, date, completed } = completionData;
-  const habit = await getHabitById(habitId);
-  if (!habit) {
-    throw new Error(`Habit with ID ${habitId} not found`);
+  const completion = await upsertCompletionOnHabit(completionData);
+  if (!completion) {
+    throw new Error(`Habit with ID ${completionData.habitId} not found`);
   }
 
-  const dateInt = dateStrToInt(date);
-  const updatedDays = new Set(habit.completedDays || []);
+  // Preserve behavior: streaks updated after each completion change
+  await updateHabitStreaks(completionData.habitId);
 
-  if (completed) {
-    updatedDays.add(dateInt);
-  } else {
-    updatedDays.delete(dateInt);
-  }
-
-  await updateHabit(habitId, { completedDays: Array.from(updatedDays) });
-  await updateHabitStreaks(habitId);
-
-  return completionFromDay(habitId, dateInt, completed ?? true);
+  return completion;
 };
 
 /**
@@ -198,49 +200,14 @@ export const createCompletion = async (
 export const createCompletionsBatch = async (
   completionsData: Array<Omit<CompletionRecord, "id" | "completedAt">>
 ): Promise<CompletionRecord[]> => {
-  const habits = await HabitModel.find().lean<Habit[]>();
-  const habitMap = new Map<string, Habit>();
-  habits.forEach((h) => habitMap.set(h.id, h));
-
-  const changedHabits = new Map<string, Set<number>>();
-  const created: CompletionRecord[] = [];
-
-  for (const completionData of completionsData) {
-    const habit = habitMap.get(completionData.habitId);
-    if (!habit) continue;
-    const dateInt = dateStrToInt(completionData.date);
-    const set =
-      changedHabits.get(habit.id) || new Set<number>(habit.completedDays || []);
-
-    if (completionData.completed) {
-      set.add(dateInt);
-    } else {
-      set.delete(dateInt);
-    }
-
-    changedHabits.set(habit.id, set);
-    created.push(
-      completionFromDay(habit.id, dateInt, completionData.completed ?? true)
-    );
-  }
-
-  // Persist updates per habit
-  const bulkOps = Array.from(changedHabits.entries()).map(
-    ([habitId, days]) => ({
-      updateOne: {
-        filter: { id: habitId },
-        update: { $set: { completedDays: Array.from(days) } },
-      },
-    })
+  const { created, changedHabitIds } = await applyCompletionsBatchOnHabits(
+    completionsData
   );
 
-  if (bulkOps.length > 0) {
-    await HabitModel.bulkWrite(bulkOps);
-    // Update streaks sequentially to reuse existing logic
-    for (const habitId of changedHabits.keys()) {
+  // Preserve behavior: update streaks sequentially for each changed habit
+  for (const habitId of changedHabitIds) {
       // eslint-disable-next-line no-await-in-loop
       await updateHabitStreaks(habitId);
-    }
   }
 
   return created;
@@ -250,20 +217,11 @@ export const createCompletionsBatch = async (
  * Delete a completion record by id (habitId-YYYYMMDD)
  */
 export const deleteCompletion = async (id: string): Promise<boolean> => {
-  const [habitId, dateIntStr] = id.split("-");
-  if (!habitId || !dateIntStr) return false;
-  const dateInt = parseInt(dateIntStr, 10);
-
-  const habit = await getHabitById(habitId);
-  if (!habit || !habit.completedDays) return false;
-
-  const before = habit.completedDays.length;
-  const updated = habit.completedDays.filter((d) => d !== dateInt);
-  if (updated.length === before) return false;
-
-  await updateHabit(habitId, { completedDays: updated });
+  const { removed, habitId } = await removeCompletionFromHabit(id);
+  if (removed && habitId) {
   await updateHabitStreaks(habitId);
-  return true;
+  }
+  return removed;
 };
 
 /**
@@ -272,22 +230,11 @@ export const deleteCompletion = async (id: string): Promise<boolean> => {
 export const updateCompletion = async (
   completion: CompletionRecord
 ): Promise<boolean> => {
-  const { habitId, date, completed } = completion;
-  const habit = await getHabitById(habitId);
-  if (!habit) return false;
-
-  const dateInt = dateStrToInt(date);
-  const updatedDays = new Set(habit.completedDays || []);
-
-  if (completed) {
-    updatedDays.add(dateInt);
-  } else {
-    updatedDays.delete(dateInt);
-  }
-
-  await updateHabit(habitId, { completedDays: Array.from(updatedDays) });
+  const { updated, habitId } = await updateCompletionOnHabit(completion);
+  if (updated && habitId) {
   await updateHabitStreaks(habitId);
-  return true;
+  }
+  return updated;
 };
 
 /**
@@ -556,30 +503,5 @@ export const calculateHabitAnalytics = async (
 export const replaceAllCompletions = async (
   completions: CompletionRecord[]
 ): Promise<void> => {
-  const habits = await HabitModel.find().lean<Habit[]>();
-  const habitMap = new Map<string, Habit>();
-
-  habits.forEach((h) => habitMap.set(h.id, { ...h, completedDays: [] }));
-
-  completions.forEach((c) => {
-    if (!c.completed) return;
-    const habit = habitMap.get(c.habitId);
-    if (!habit) return;
-    const dayInt = dateStrToInt(c.date);
-    const set = new Set(habit.completedDays || []);
-    set.add(dayInt);
-    habit.completedDays = Array.from(set);
-  });
-
-  const bulkOps = Array.from(habitMap.values()).map((habit) => ({
-    updateOne: {
-      filter: { id: habit.id },
-      update: { $set: { completedDays: habit.completedDays } },
-    },
-  }));
-
-  if (bulkOps.length > 0) {
-    await HabitModel.bulkWrite(bulkOps);
-  }
+  await replaceAllCompletionsOnHabits(completions);
 };
-

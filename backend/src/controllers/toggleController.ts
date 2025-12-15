@@ -1,17 +1,18 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { CompletionRecord } from "@shared/types";
-import { validateCompletion } from "../utils/validation";
 import * as dataService from "../services/dataService";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
 import { isValidDateFormat } from "../utils/validation";
+import type { AuthenticatedRequest } from "../types/auth";
 
 /**
  * Toggle a habit's completion status for a date
  * @route POST /api/completions/toggle
  */
 export const toggleHabitCompletion = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const { habitId, date } = req.body;
+    const userId = req.user!._id;
 
     // Basic validation
     if (!habitId) {
@@ -27,10 +28,15 @@ export const toggleHabitCompletion = asyncHandler(
       throw new AppError("Invalid date format. Use YYYY-MM-DD", 400);
     }
 
-    // Check if habit exists
+    // Check if habit exists AND belongs to the authenticated user
     const habit = await dataService.getHabitById(habitId);
-    if (!habit) {
+    if (!habit || habit.userId.toString() !== userId.toString()) {
       throw new AppError(`Habit with ID ${habitId} not found`, 404);
+    }
+
+    // Prevent toggling inactive habits
+    if (!habit.isActive) {
+      throw new AppError(`Cannot toggle completion for inactive habit`, 400);
     }
 
     // Get existing completion if any

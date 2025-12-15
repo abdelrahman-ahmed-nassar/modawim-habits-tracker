@@ -23,7 +23,7 @@ export class NotesService {
    * Create a new note
    */
   static async createNote(
-    note: Omit<DailyNote, "id" | "createdAt" | "updatedAt" | "userId">
+    note: Omit<DailyNote, "_id" | "createdAt" | "updatedAt" | "userId">
   ): Promise<DailyNote> {
     const res = await apiService.post<DailyNote>("/notes", note);
     return res.data;
@@ -34,7 +34,7 @@ export class NotesService {
    */
   static async updateNote(
     id: string,
-    note: Partial<Omit<DailyNote, "id" | "date" | "createdAt" | "updatedAt">>
+    note: Partial<Omit<DailyNote, "_id" | "date" | "createdAt" | "updatedAt">>
   ): Promise<DailyNote> {
     const res = await apiService.put<DailyNote>(`/notes/${id}`, note);
     return res.data;

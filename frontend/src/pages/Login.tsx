@@ -20,9 +20,19 @@ const Login = () => {
       await AuthService.login({ email, password });
       toast.success("تم تسجيل الدخول بنجاح");
       navigate("/", { replace: true });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Login error", err);
-      toast.error("فشل تسجيل الدخول. تحقق من البريد وكلمة المرور.");
+      // Backend error message is in err.response.message (from api.ts handleError)
+      const apiError = err as { response?: { message?: string } };
+      const errorMessage = apiError.response?.message || "";
+
+      if (errorMessage.includes("EMAIL_NOT_FOUND")) {
+        toast.error("البريد الإلكتروني غير مسجل");
+      } else if (errorMessage.includes("INVALID_PASSWORD")) {
+        toast.error("كلمة المرور غير صحيحة");
+      } else {
+        toast.error("فشل تسجيل الدخول. حاول مرة أخرى.");
+      }
     } finally {
       setIsSubmitting(false);
     }

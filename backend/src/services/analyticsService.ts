@@ -66,25 +66,27 @@ export const calculateAllHabitsAnalytics = async (
     startDate = getDateDaysAgo(30); // Default to 30 days
   }
 
-  // Get all habits and their completions
-  const allHabits = await dataService.getHabits();
-  const habits = userId
-    ? allHabits.filter((habit) => habit.userId === userId)
-    : allHabits;
+  // Get habits and completions using DB-level userId + isActive filter when available
+  // For analytics we need both total count and active habits
+  const [allHabits, activeHabits, allCompletions] = await Promise.all([
+    userId ? dataService.getHabitsByUserId(userId) : dataService.getHabits(),
+    userId
+      ? dataService.getActiveHabitsByUserId(userId)
+      : (await dataService.getHabits()).filter((h) => h.isActive),
+    userId
+      ? dataService.getCompletionsByUserId(userId)
+      : dataService.getCompletions(),
+  ]);
 
-  const allCompletions = await dataService.getCompletions();
-  const habitIds = new Set(habits.map((h) => h.id));
-  const completions = allCompletions
-    .filter((c: CompletionRecord) => habitIds.has(c.habitId))
-    .filter((c: CompletionRecord) => c.date >= startDate && c.date <= endDate);
-  // Get active habits only
-  const activeHabits = habits.filter((habit) => habit.isActive);
+  const completions = allCompletions.filter(
+    (c: CompletionRecord) => c.date >= startDate && c.date <= endDate
+  );
 
   // Calculate analytics for each active habit
   const habitsAnalytics = await Promise.all(
     activeHabits.map(async (habit) => {
       const habitCompletions = completions.filter(
-        (c: CompletionRecord) => c.habitId === habit.id
+        (c: CompletionRecord) => c.habitId.toString() === habit._id.toString()
       );
 
       const successRate = calculateSuccessRate(
@@ -117,7 +119,7 @@ export const calculateAllHabitsAnalytics = async (
       const averageCompletionsPerWeek =
         weeksInPeriod > 0 ? totalCompletions / weeksInPeriod : 0;
       return {
-        habitId: habit.id,
+        habitId: habit._id,
         habitName: habit.name,
         tag: habit.tag,
         repetition: habit.repetition,
@@ -145,8 +147,8 @@ export const calculateAllHabitsAnalytics = async (
     period,
     startDate,
     endDate,
-    totalHabits: habits.length,
-    activeHabits: habits.filter((h) => h.isActive).length,
+    totalHabits: allHabits.length,
+    activeHabits: activeHabits.length,
     habits: sortedHabits,
     summary: {
       averageSuccessRate:
@@ -189,16 +191,13 @@ export const calculateHabitAnalytics = async (
     startDate = getDateDaysAgo(30); // Default to 30 days
   }
 
-  // Get habit and its completions
+  // Get habit and its completions (getCompletionsByHabitId is more efficient)
   const habit = await dataService.getHabitById(habitId);
   if (!habit) return null;
 
-  const allCompletions = await dataService.getCompletions();
-  const completions = allCompletions.filter(
+  const allHabitCompletions = await dataService.getCompletionsByHabitId(habitId);
+  const habitCompletions = allHabitCompletions.filter(
     (c: CompletionRecord) => c.date >= startDate && c.date <= endDate
-  );
-  const habitCompletions = completions.filter(
-    (c: CompletionRecord) => c.habitId === habitId
   );
 
   const successRate = calculateSuccessRate(
@@ -231,7 +230,7 @@ export const calculateHabitAnalytics = async (
   const averageCompletionsPerWeek =
     weeksInPeriod > 0 ? totalCompletions / weeksInPeriod : 0;
   return {
-    habitId: habit.id,
+    habitId: habit._id,
     habitName: habit.name,
     tag: habit.tag,
     repetition: habit.repetition,

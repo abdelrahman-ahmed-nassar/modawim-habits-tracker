@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { format, addDays, subDays, isValid, parseISO } from "date-fns";
 import {
   ChevronLeft,
@@ -63,6 +63,7 @@ interface TabData {
 const Daily: React.FC = () => {
   const { date: urlDate } = useParams<{ date: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Initialize date from URL parameter or default to today
   const [currentDate, setCurrentDate] = useState<Date>(() => {
@@ -79,7 +80,10 @@ const Daily: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
   const [updatingHabits, setUpdatingHabits] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<string>("habits");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const tabParam = searchParams.get("tab");
+    return tabParam === "notes" ? "notes" : "habits";
+  });
   const [activeHabitTab, setActiveHabitTab] = useState<string>("الجميع");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [syncingAnalytics, setSyncingAnalytics] = useState(false);
@@ -145,12 +149,12 @@ const Daily: React.FC = () => {
           existingCompletions.map((c) => [c.habitId, c])
         ); // Create records for habits scheduled for today, using existing completions or defaults
         const records = habitsForToday.map((habit) => {
-          const completion = completionMap.get(habit.id);
+          const completion = completionMap.get(habit._id);
           const completed = completion ? completion.completed : false;
 
           return {
-            id: completion?.id || `temp-${habit.id}`,
-            habitId: habit.id,
+            id: completion?.id || `temp-${habit._id}`,
+            habitId: habit._id,
             date: formattedDate,
             completed,
             completedAt: completion?.completedAt || "",
@@ -181,7 +185,6 @@ const Daily: React.FC = () => {
             completionRate,
           },
         });
-
       } catch (error) {
         console.error("Error fetching daily data:", error);
         toast.error("Failed to load daily data");
@@ -328,7 +331,7 @@ const Daily: React.FC = () => {
         }
       }
 
-      toast.success("Habit completion updated");
+      toast.success("تم تحديث العادة");
     } catch (error) {
       console.error("Error toggling habit completion:", error);
       toast.error("Failed to update habit completion");
