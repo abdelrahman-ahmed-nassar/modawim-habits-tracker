@@ -131,16 +131,17 @@ const Settings: React.FC = () => {
     >
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-6">الإعدادات</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm sm:text-base">
           إدارة عاداتك، حالاتك المزاجية، مستويات الإنتاجية، وقوالب اليوميات
         </p>
 
         <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-          <nav className="flex space-x-8 space-x-reverse">
-            {" "}
+          {/* Tabs container: horizontally scrollable on small screens, full layout on larger screens */}
+          <nav className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex space-x-4 space-x-reverse overflow-x-auto no-scrollbar sm:space-x-8 sm:overflow-visible">
             <button
               onClick={() => handleTabChange("habits")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "habits"
                   ? "border-blue-500 text-blue-600 dark:text-blue-500"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
@@ -153,7 +154,7 @@ const Settings: React.FC = () => {
             </button>{" "}
             <button
               onClick={() => handleTabChange("moods")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "moods"
                   ? "border-blue-500 text-blue-600 dark:text-blue-500"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
@@ -166,7 +167,7 @@ const Settings: React.FC = () => {
             </button>{" "}
             <button
               onClick={() => handleTabChange("productivity")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "productivity"
                   ? "border-blue-500 text-blue-600 dark:text-blue-500"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
@@ -179,7 +180,7 @@ const Settings: React.FC = () => {
             </button>{" "}
             <button
               onClick={() => handleTabChange("templates")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "templates"
                   ? "border-blue-500 text-blue-600 dark:text-blue-500"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
@@ -192,7 +193,7 @@ const Settings: React.FC = () => {
             </button>{" "}
             <button
               onClick={() => handleTabChange("counters")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "counters"
                   ? "border-blue-500 text-blue-600 dark:text-blue-500"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
@@ -203,6 +204,7 @@ const Settings: React.FC = () => {
                 <span>العدادات</span>
               </div>
             </button>
+            </div>
           </nav>
         </div>
 

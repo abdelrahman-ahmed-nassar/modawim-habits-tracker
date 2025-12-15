@@ -30,7 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, onClose }) => {
     { path: `/yearly/${currentYear}`, icon: Calendar, label: "السنوي" },
     { path: "/notes", icon: BookOpen, label: "اليوميات" },
     { path: "/counters", icon: Calculator, label: "العدادات" },
-    { path: "/settings", icon: Settings, label: "الإعدادات" },
+    { path: "/settings", icon: Settings, label: "التحكم فالعادات" },
   ];
 
   return (
